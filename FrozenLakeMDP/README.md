@@ -1,6 +1,6 @@
 # FROZEN LAKE
 
-#### This repo is an python implementation of the frozen lake situation create by the [gym](https://gym.openai.com/envs/FrozenLake-v0/)
+#### This repo is a python implementation of the frozen lake situation created by the [Open AI gym](https://gym.openai.com/envs/FrozenLake-v0/)
 
 
 
