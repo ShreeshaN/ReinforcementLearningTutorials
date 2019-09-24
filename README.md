@@ -2,7 +2,7 @@
 
 #### This repo contains project implementations in python that cover basics of Reinforcement Learning   
 
-1.[Frozen Lake Implementation - Project 1](https://github.com/ShreeshaN/ReinforcementLearningTutorials/tree/master/FrozenLakeMDP)
+1.[Frozen Lake Implementation - Project 1](FrozenLakeMDP)
 
         Concepts covered
            1. Model Based approach
@@ -11,7 +11,7 @@
            4. Value Iteration
            
  
-2.[Black Jack Implementation - Project 2]()
+2.[Black Jack Implementation - Project 2](BlackJackMonteCarlo)
        
         Concepts covered
            1. Model Free approach using Monte-Carlo methods
@@ -21,7 +21,7 @@
            5. Eplison Greedy method
           
        
-3.[Cliff Walking Implementation - Project 3]()
+3.[Cliff Walking Implementation - Project 3](CliffWalkingTemporalDifference)
        
         Concepts covered
            1. Model Free approach using Temporal Difference
