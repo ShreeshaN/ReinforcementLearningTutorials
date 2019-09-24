@@ -10,7 +10,7 @@ Description:
 
 """
 
-from FrozenLakeMDP.rl_src.mdp_dp import policy_evaluation, policy_improvement, policy_iteration, render_single, \
+from FrozenLakeMDP.fl_src.mdp_dp import policy_evaluation, policy_improvement, policy_iteration, render_single, \
     value_iteration
 import gym
 import sys
