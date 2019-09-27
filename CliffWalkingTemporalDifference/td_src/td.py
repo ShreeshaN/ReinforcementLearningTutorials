@@ -45,10 +45,10 @@ def epsilon_greedy(Q, state, nA, epsilon=0.1):
     With probability (1 − epsilon) choose the greedy action.
     With probability epsilon choose an action at random.
     """
-    A = np.ones(nA) * epsilon / float(nA)
-    best_action = np.argmax(Q[state])
-    A[best_action] += (1.0 - epsilon)
-    return np.random.choice(np.arange(len(A)), p=A)
+    actions = np.ones(nA) * epsilon / float(nA)
+    best_current_action = np.argmax(Q[state])
+    actions[best_current_action] += (1.0 - epsilon)
+    return np.random.choice(np.arange(len(actions)), p=actions)
 
 
 def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.1):
