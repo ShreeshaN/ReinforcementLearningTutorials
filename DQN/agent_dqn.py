@@ -148,7 +148,7 @@ class Agent_DQN(Agent):
             if self.epsilon >= random.random() or self.t < self.initial_replay_size:
                 action = random.randrange(self.num_actions)
             else:
-                action = np.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
+                action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
             # Anneal epsilon linearly over time
             if self.epsilon > self.final_epsilon and self.t >= self.initial_replay_size:
                 self.epsilon -= self.epsilon_step
@@ -156,7 +156,7 @@ class Agent_DQN(Agent):
             if 0.005 >= random.random():
                 action = random.randrange(self.num_actions)
             else:
-                action = np.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
+                action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
 
         return action
 
