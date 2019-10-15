@@ -81,7 +81,7 @@ class Agent_DQN(Agent):
         self.total_loss = 0.0
         self.duration = 0
         self.episode = 0
-        self.last_40_reward = deque()
+        self.last_100_reward = deque()
 
         # Input that is not used when fowarding for Q-value
         # or loss calculation on first output of model
@@ -93,7 +93,7 @@ class Agent_DQN(Agent):
 
         # Create q network
         self.q_network = DQN().to(self.device)
-        self.optimizer = optim.SGD(self.q_network.parameters(), lr=args.learning_rate)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
 
         # Create target network
         self.target_network = DQN().to(self.device)
@@ -160,7 +160,7 @@ class Agent_DQN(Agent):
 
         return action
 
-    def push(self):
+    def push(self, state, action, reward, next_state, terminal):
         """ You can add additional arguments as you need. 
         Push new data to buffer and remove the old one if the buffer is full.
         
@@ -168,11 +168,9 @@ class Agent_DQN(Agent):
         -----
             you can consider deque(maxlen = 10000) list
         """
-        if len(self.replay_memory) > self.num_replay_memory:
-            self.replay_memory.popleft()
         ###########################
         # YOUR IMPLEMENTATION HERE #
-
+        self.replay_memory.append((state, action, reward, next_state, terminal))
         ###########################
 
     def replay_buffer(self, state, action, reward, next_state, terminal):
@@ -182,10 +180,11 @@ class Agent_DQN(Agent):
         ###########################
         # YOUR IMPLEMENTATION HERE #
 
-        ###########################
         # Store transition in replay memory
-        self.replay_memory.append((state, action, reward, next_state, terminal))
-        self.push()
+        self.push(state, action, reward, next_state, terminal)
+        if len(self.replay_memory) > self.num_replay_memory:
+            self.replay_memory.popleft()
+        ###########################
 
     def train_network(self):
         state_batch = []
@@ -193,7 +192,6 @@ class Agent_DQN(Agent):
         reward_batch = []
         next_state_batch = []
         terminal_batch = []
-        y_batch = []
 
         # Sample random minibatch of transition from replay memory
         minibatch = random.sample(self.replay_memory, self.batch_size)
@@ -211,19 +209,16 @@ class Agent_DQN(Agent):
         target_q_values_batch = self.target_network(tensor(next_state_batch).float())
         y_batch = tensor(reward_batch) + tensor(1 - terminal_batch) * self.gamma * torch.max(target_q_values_batch,
                                                                                              dim=-1).values
-        a_one_hot = np.zeros((self.batch_size, self.num_actions))
-        for idx, ac in enumerate(action_batch):
-            a_one_hot[idx, ac] = 1.0
-
         # Loss
         output = self.q_network(tensor(state_batch).float())
-
         output = output[[x for x in range(self.batch_size)], [action_batch]].squeeze(0)
         loss = F.smooth_l1_loss(output, y_batch)
+
         self.optimizer.zero_grad()
         loss.backward()
+        for param in self.q_network.parameters():
+            param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-
         self.total_loss += loss
 
     def list2np(sefl, in_list):
@@ -235,7 +230,7 @@ class Agent_DQN(Agent):
         """
         ###########################
         # YOUR IMPLEMENTATION HERE #
-        self.q_network.train()
+        # self.q_network.train()
         while self.t <= self.num_steps:
             terminal = False
             observation = self.env.reset()
@@ -243,15 +238,13 @@ class Agent_DQN(Agent):
                 last_observation = observation
                 observation, _, _, _ = self.env.step(0)  # Do nothing
             while not terminal:
-                # last_observation = np.rollaxis(observation, 2)
                 last_observation = observation
-                last_observation_pytorch = np.rollaxis(last_observation, 2)
-                action = self.make_action(last_observation_pytorch, test=False)
+                last_observation_channel_first = np.rollaxis(last_observation, 2)
+                action = self.make_action(last_observation_channel_first, test=False)
                 observation, reward, terminal, _ = self.env.step(action)
                 reward = max(-1.0, min(reward, 1.0))
-                # last_observation_for_pytorch = np.rollaxis(last_observation, 2)
-                observation_for_pytorch = np.rollaxis(observation, 2)
-                self.run(last_observation_pytorch, action, reward, terminal, observation_for_pytorch)
+                observation_channel_first = np.rollaxis(observation, 2)
+                self.run(last_observation_channel_first, action, reward, terminal, observation_channel_first)
 
         ###########################
 
@@ -281,10 +274,10 @@ class Agent_DQN(Agent):
         self.duration += 1
 
         if terminal:
-            # Observe the mean of rewards on last 30 episode
-            self.last_40_reward.append(self.total_reward)
-            if len(self.last_40_reward) > 40:
-                self.last_40_reward.popleft()
+            # Observe the mean of rewards on last 100 episode
+            self.last_100_reward.append(self.total_reward)
+            if len(self.last_100_reward) > 100:
+                self.last_100_reward.popleft()
 
             # Log message
             if self.t < self.initial_replay_size:
@@ -294,14 +287,14 @@ class Agent_DQN(Agent):
             else:
                 mode = 'exploit'
             print(
-                    'EPISODE: {0:6d} / TIMESTEP: {1:8d} / DURATION: {2:5d} / EPSILON: {3:.5f} / AVG_REWARD: {4:2.3f} / AVG_MAX_Q: {5:2.4f} / AVG_LOSS: {6:.5f} / MODE: {7}'.format(
-                            self.episode + 1, self.t, self.duration, self.epsilon,
-                            np.mean(self.last_40_reward), self.total_q_max / float(self.duration),
+                    'EPISODE: {0:2d} | TIMESTEP: {1:2d} | DURATION: {2:2d} | EPSILON: {3:.5f} | REWARD: {4:.3f} | AVG_REWARD: {5:.3f} | AVG_MAX_Q: {6:.4f} | AVG_LOSS: {7:.5f} | MODE: {8}'.format(
+                            self.episode + 1, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
+                            np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
                             self.total_loss / (float(self.duration) / float(self.train_interval)), mode))
             print(
-                    'EPISODE: {0:6d} / TIMESTEP: {1:8d} / DURATION: {2:5d} / EPSILON: {3:.5f} / AVG_REWARD: {4:2.3f} / AVG_MAX_Q: {5:2.4f} / AVG_LOSS: {6:.5f} / MODE: {7}'.format(
-                            self.episode + 1, self.t, self.duration, self.epsilon,
-                            np.mean(self.last_40_reward), self.total_q_max / float(self.duration),
+                    'EPISODE: {0:2d} | TIMESTEP: {1:2d} | DURATION: {2:2d} | EPSILON: {3:.5f} | REWARD: {4:.3f} | AVG_REWARD: {5:.3f} | AVG_MAX_Q: {6:.4f} | AVG_LOSS: {7:.5f} | MODE: {8}'.format(
+                            self.episode + 1, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
+                            np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
                             self.total_loss / (float(self.duration) / float(self.train_interval)), mode),
                     file=self.log)
 

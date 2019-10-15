@@ -26,11 +26,13 @@ class DQN(nn.Module):
         ###########################
         # YOUR IMPLEMENTATION HERE #
         self.conv1 = nn.Conv2d(4, 32, 4, 1)
+        self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 64, 4, 1)
+        self.bn2 = nn.BatchNorm2d(64)
         self.conv3 = nn.Conv2d(64, 64, 4, 1)
+        self.bn3 = nn.BatchNorm2d(64)
         self.fc1 = nn.Linear(7 * 7 * 64, 500)
-        self.fc2 = nn.Linear(500, 100)
-        self.fc3 = nn.Linear(100, 4)
+        self.fc2 = nn.Linear(500, 4)
         ###########################
 
     def forward(self, x):
@@ -42,22 +44,21 @@ class DQN(nn.Module):
         ###########################
         # YOUR IMPLEMENTATION HERE #
         # print("input ", x.shape)
-        x = F.relu(self.conv1(x))
+        x = F.relu(self.bn1(self.conv1(x)))
         # print("after 1st conv ", x.shape)
         x = F.max_pool2d(x, 2, 2)
         # print("after 1st poool ", x.shape)
-        x = F.relu(self.conv2(x))
+        x = F.relu(self.bn2(self.conv2(x)))
         # print("after 2nd conv ", x.shape)
         x = F.max_pool2d(x, 2, 2)
         # print("after 2nd poool ", x.shape)
-        x = F.relu(self.conv3(x))
+        x = F.relu(self.bn3(self.conv3(x)))
         # print("after 3nrd conv ", x.shape)
         x = F.max_pool2d(x, 2, 2)
         # print("after 3rd poool ", x.shape)
         x = x.view(-1, 7 * 7 * 64)
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.fc2(x)
         return x
         ###########################
 
@@ -72,7 +73,10 @@ class DQN(nn.Module):
         self.conv3.weight = new_weights['conv3']
         self.fc1.weight = new_weights['fc1']
         self.fc2.weight = new_weights['fc2']
-        self.fc3.weight = new_weights['fc3']
+        self.bn1.weight = new_weights['bn1']
+        self.bn2.weight = new_weights['bn2']
+        self.bn3.weight = new_weights['bn3']
+        # self.fc3.weight = new_weights['fc3']
 
     def get_weights(self):
         return {'conv1': self.conv1.weight,
@@ -80,7 +84,11 @@ class DQN(nn.Module):
                 'conv3': self.conv3.weight,
                 'fc1': self.fc1.weight,
                 'fc2': self.fc2.weight,
-                'fc3': self.fc3.weight
+                # 'fc3': self.fc3.weight,
+                'bn1': self.bn1.weight,
+                'bn2': self.bn2.weight,
+                'bn3': self.bn3.weight
+
                 }
 
     def save_model(self, path):
