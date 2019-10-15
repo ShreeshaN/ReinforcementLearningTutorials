@@ -273,7 +273,7 @@ class Agent_DQN(Agent):
             # Save network
             if self.t % self.save_interval == 0:
                 save_path = self.save_network_path + '/' + self.exp_name + '_' + str(self.t) + '.pt'
-                self.q_network.save(save_path)
+                self.q_network.save_model(save_path)
                 print('Successfully saved: ' + save_path)
 
         self.total_reward += reward
