@@ -13,6 +13,7 @@ from torch import tensor
 
 from DQN.agent import Agent
 from DQN.dqn_model import DQN
+from torch.autograd import Variable
 
 from DQN.utils import tensor
 
@@ -62,7 +63,7 @@ class Agent_DQN(Agent):
         self.exp_name = args.exp_name
         self.ddqn = args.ddqn
         self.dueling = args.dueling
-        self.test_path = args.test_path
+        # self.test_path = args.test_path
         self.is_cuda_available = torch.cuda.is_available()
         self.device = torch.device("cuda" if self.is_cuda_available else "cpu")
         self.log = args.logfile_path
@@ -85,18 +86,20 @@ class Agent_DQN(Agent):
 
         # Input that is not used when fowarding for Q-value
         # or loss calculation on first output of model
-        self.dummy_input = np.zeros((1, self.num_actions))
-        self.dummy_batch = np.zeros((self.batch_size, self.num_actions))
+        # self.dummy_input = np.zeros((1, self.num_actions))
+        # self.dummy_batch = np.zeros((self.batch_size, self.num_actions))
 
         # Create replay memory
         self.replay_memory = deque()
 
         # Create q network
         self.q_network = DQN().to(self.device)
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
-
         # Create target network
         self.target_network = DQN().to(self.device)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
+
+        self.q_network.train()
+        self.target_network.eval()
 
         if not os.path.exists(self.save_network_path):
             os.makedirs(self.save_network_path)
@@ -105,18 +108,23 @@ class Agent_DQN(Agent):
 
         # load model for testing, train a new one otherwise
         if args.test_dqn:
-            self.q_network.load_weights(self.test_dqn_model_path)
+            self.q_network.load_state_dict(torch.load(self.test_dqn_model_path))
         else:
             self.log = open(self.save_summary_path + self.exp_name + '.log', 'w')
 
         # Set target_network weight
-        self.target_network.set_weights(self.q_network.get_weights())
+        self.target_network.load_state_dict(self.q_network.state_dict())
 
         if args.test_dqn:
             # you can load your model here
             print('loading trained model')
             ###########################
             # YOUR IMPLEMENTATION HERE #
+
+    def norm_state(self, state):
+        state_min = np.min(state)
+        state_max = np.max(state)
+        return (state - state_min) / (state_max - state_min)
 
     def init_game_setting(self):
         """
@@ -129,6 +137,18 @@ class Agent_DQN(Agent):
 
         ###########################
         pass
+
+    def get_prediction(self, state):
+        if not isinstance(state, torch.Tensor):
+            state = torch.Tensor(state)
+        if state.size() == (4, 84, 84):
+            return self.q_network(state)
+        elif state.size() == (84, 84, 4):
+            # making state channel first
+            state = state.permute(2, 0, 1)
+            return self.q_network(state)
+        else:
+            raise Exception("Expecting state with (channel * X * Y) or (X * Y * channel). But recieved ", state.size())
 
     def make_action(self, observation, test=True):
         """
@@ -143,12 +163,12 @@ class Agent_DQN(Agent):
         ###########################
         # YOUR IMPLEMENTATION HERE #
 
-        ###########################
         if not test:
             if self.epsilon >= random.random() or self.t < self.initial_replay_size:
                 action = random.randrange(self.num_actions)
             else:
                 action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
+
             # Anneal epsilon linearly over time
             if self.epsilon > self.final_epsilon and self.t >= self.initial_replay_size:
                 self.epsilon -= self.epsilon_step
@@ -157,7 +177,6 @@ class Agent_DQN(Agent):
                 action = random.randrange(self.num_actions)
             else:
                 action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
-
         return action
 
     def push(self, state, action, reward, next_state, terminal):
@@ -181,9 +200,10 @@ class Agent_DQN(Agent):
         # YOUR IMPLEMENTATION HERE #
 
         # Store transition in replay memory
-        self.push(state, action, reward, next_state, terminal)
         if len(self.replay_memory) > self.num_replay_memory:
             self.replay_memory.popleft()
+        self.push(state, action, reward, next_state, terminal)
+
         ###########################
 
     def train_network(self):
@@ -221,37 +241,33 @@ class Agent_DQN(Agent):
         self.optimizer.step()
         self.total_loss += loss
 
-    def list2np(sefl, in_list):
-        return np.float32(np.array(in_list))
-
     def train(self):
         """
         Implement your training algorithm here
         """
         ###########################
         # YOUR IMPLEMENTATION HERE #
-        # self.q_network.train()
         while self.t <= self.num_steps:
             terminal = False
             observation = self.env.reset()
+            observation = self.norm_state(observation)
+            observation_channel_first = np.rollaxis(observation, 2)
             for _ in range(random.randint(1, self.no_op_steps)):
-                last_observation = observation
                 observation, _, _, _ = self.env.step(0)  # Do nothing
             while not terminal:
-                last_observation = observation
-                last_observation_channel_first = np.rollaxis(last_observation, 2)
-                action = self.make_action(last_observation_channel_first, test=False)
-                observation, reward, terminal, _ = self.env.step(action)
+                action = self.make_action(observation_channel_first, test=False)
+                new_observation, reward, terminal, _ = self.env.step(action)
                 reward = max(-1.0, min(reward, 1.0))
-                observation_channel_first = np.rollaxis(observation, 2)
-                self.run(last_observation_channel_first, action, reward, terminal, observation_channel_first)
+                new_observation = self.norm_state(new_observation)
+                new_observation_channel_first = np.rollaxis(new_observation, 2)
+                self.run(observation_channel_first, action, reward, terminal, new_observation_channel_first)
+                observation_channel_first = new_observation_channel_first
 
         ###########################
 
-    def run(self, state, action, reward, terminal, observation):
-        next_state = observation
+    def run(self, state, action, reward, terminal, next_state):
 
-        # # Store transition in replay memory
+        # Store transition in replay memory
         self.replay_buffer(state, action, reward, next_state, terminal)
 
         if self.t >= self.initial_replay_size:
@@ -261,12 +277,13 @@ class Agent_DQN(Agent):
 
             # Update target network
             if self.t % self.target_update_interval == 0:
-                self.target_network.set_weights(self.q_network.get_weights())
+                self.target_network.load_state_dict(self.q_network.state_dict())
 
             # Save network
             if self.t % self.save_interval == 0:
                 save_path = self.save_network_path + '/' + self.exp_name + '_' + str(self.t) + '.pt'
-                self.q_network.save_model(save_path)
+                torch.save(self.q_network.state_dict(), save_path)
+                # self.q_network.save_model(save_path)
                 print('Successfully saved: ' + save_path)
 
         self.total_reward += reward
