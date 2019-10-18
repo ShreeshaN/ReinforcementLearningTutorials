@@ -33,14 +33,12 @@ def add_arguments(parser):
     parser.add_argument('--no_op_steps', type=int, default=2,
                         help='Maximum number of "do nothing" actions to be performed by the agent at the start of an episode')
     parser.add_argument('--save_network_path', type=str, default="saved_dqn_networks/", help='')
-    # parser.add_argument('--test_dqn_model_path', type=str, default="saved_dqn_networks/breakout_dqn_4700000.pt", help='')
-    parser.add_argument('--test_dqn_model_path', type=str, default="saved_dqn_networks/breakout_dqn_6000000.pt", help='')
+    # parser.add_argument('--test_dqn_model_path', type=str, default="saved_dqn_networks/breakout_dqn_4300000.pt", help='')
+    parser.add_argument('--test_dqn_model_path', type=str, default="saved_dqn_networks/breakout_dqn_4300000.pt", help='')
 
     parser.add_argument('--exp_name', type=str, default="breakout_dqn", help='')
-    parser.add_argument('--ddqn', type=bool, default=False, help='Set True to apply Double Q-learning')
+    parser.add_argument('--ddqn', type=bool, default=True, help='Set True to apply Double Q-learning')
     parser.add_argument('--dueling', type=bool, default=False, help='Set True to apply Duelinng Network')
-    parser.add_argument('--test_path', type=str, default='saved_dqn_networks/breakout_dqn_4700000.pt',
-                        help='Model used during testing')
     parser.add_argument('--logfile_path', type=str, default='dqn_log',
                         help='File used for logging')
     return parser

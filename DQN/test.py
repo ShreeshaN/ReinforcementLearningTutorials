@@ -44,14 +44,15 @@ def test(agent, env, total_episodes=30):
         # playing one game
         while (not done):
             state = np.rollaxis(state, 2)
-            state = norm_state(state)
+            # state = norm_state(state)
             action = agent.make_action(state, test=True)
             state, reward, done, info = env.step(action)
             episode_reward += reward
             episode_num_states += 1
 
         rewards.append(episode_reward)
-        print('Running ', i, ' | Episode reward ', episode_reward, ' | Number of states ', episode_num_states)
+        print('Running ', i, ' | Episode reward ', episode_reward, ' | Number of states ', episode_num_states,
+              ' | Moving average Reward ', np.mean(rewards))
     print('Run %d episodes' % (total_episodes))
     print('Mean:', np.mean(rewards))
 
