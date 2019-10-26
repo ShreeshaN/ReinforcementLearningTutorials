@@ -24,17 +24,10 @@ def parse():
     return args
 
 
-def norm_state(state):
-    state_min = np.min(state)
-    state_max = np.max(state)
-    return (state - state_min) / (state_max - state_min)
-
-
 def test(agent, env, total_episodes=30):
     rewards = []
     env.seed(seed)
     for i in range(total_episodes):
-
         state = env.reset()
         agent.init_game_setting()
         done = False
@@ -43,13 +36,10 @@ def test(agent, env, total_episodes=30):
 
         # playing one game
         while (not done):
-            state = np.rollaxis(state, 2)
-            # state = norm_state(state)
             action = agent.make_action(state, test=True)
             state, reward, done, info = env.step(action)
             episode_reward += reward
             episode_num_states += 1
-
         rewards.append(episode_reward)
         print('Running ', i, ' | Episode reward ', episode_reward, ' | Number of states ', episode_num_states,
               ' | Moving average Reward ', np.mean(rewards))
