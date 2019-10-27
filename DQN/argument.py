@@ -29,6 +29,6 @@ def add_arguments(parser):
                         help='The frequency with which the network is saved')
     parser.add_argument('--save_network_path', type=str, default="dqn_models/")
     parser.add_argument('--test_dqn_model_path', type=str,
-                        default="/Users/badgod/Documents/Documents - badgod's MacBook Pro/DOCS__/MS in DS/Semester 1/DS595 - RL/homeworks/project3_submission/project-3 submission/model_file/dqn_network_for_breakout.pt",
+                        default="dqn_models/dqn_network_for_breakout_3875000.pt",
                         help='')
     return parser
