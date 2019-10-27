@@ -153,10 +153,24 @@ class Agent_DQN(Agent):
                                    tensor(next_state).float().to(self.device), tensor(terminal)))
 
     def optimize_network(self):
+        current_states = []
+        actions = []
+        rewards = []
+        future_states = []
+        terminals = []
 
         minibatch = random.sample(self.replay_memory, self.batch_size)
-        current_states, actions, rewards, future_states, terminals = map(lambda x: Variable(torch.stack(x, 0)),
-                                                                         zip(*minibatch))
+        for data in minibatch:
+            current_states.append(data[0])
+            actions.append(data[1])
+            rewards.append(data[2])
+            future_states.append(data[3])
+            terminals.append(data[4])
+
+        # converting arrays to tensors and assigning them to GPU if available
+        future_states, current_states, actions, rewards, terminals = tensor(future_states).to(self.device), tensor(
+                current_states).to(self.device), tensor(actions).to(self.device), tensor(rewards).to(
+                self.device), tensor(terminals).to(self.device)
 
         current_q_values = self.q_network(current_states).gather(1, actions.unsqueeze(1).long()).squeeze(1)
         future_q_values = self.target_network(future_states).detach()
