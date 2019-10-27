@@ -294,5 +294,6 @@ class Agent_DQN(Agent):
                     print(
                             f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {self.total_rewards[i % self.capture_window]} | Avg Reward: {np.mean(self.total_rewards):.3f} | AvgQ: {np.mean(self.total_q_val):.3f} | AvgLoss: {np.mean(self.total_loss_val):.3f} | Mode: {mode}",
                             file=self.log)
-                    self.log_summary(global_step=i, test=False)
+
                 self.total_step_tracker += 1
+            self.log_summary(global_step=i, test=False)
