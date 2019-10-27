@@ -149,8 +149,7 @@ class Agent_DQN(Agent):
         # Store transition in replay memory
         state = np.rollaxis(state, 2)
         next_state = np.rollaxis(next_state, 2)
-        self.replay_memory.append((tensor(state).float().to(self.device), tensor(action), tensor(reward),
-                                   tensor(next_state).float().to(self.device), tensor(terminal)))
+        self.replay_memory.append((state, tensor(action), tensor(reward), next_state, tensor(terminal)))
 
     def optimize_network(self):
         current_states = []
