@@ -130,9 +130,12 @@ class Agent_DQN(Agent):
         """
         observation = np.rollaxis(observation, 2)
         if test:
-            return torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
+            if 0.005 >= random.random():
+                return random.randrange(self.num_actions)
+            else:
+                return torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
         else:
-            if self.total_step_tracker < self.initial_replay_size:
+            if self.epsilon >= random.random() or self.total_step_tracker < self.initial_replay_size:
                 return random.randrange(self.num_actions)
             else:
                 return torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
@@ -239,10 +242,10 @@ class Agent_DQN(Agent):
             self.total_q_val[i % self.capture_window] = -1e9
             self.total_rewards[i % self.capture_window] = 0
 
-            # Decay epsilon over time
-            self.decay_epsilon()
-
             while not terminal:
+
+                # Decay epsilon over time
+                self.decay_epsilon()
                 action = self.make_action(observation, test=False)
                 new_observation, reward, terminal, _ = self.env.step(action)
                 self.total_rewards[i % self.capture_window] += reward
@@ -296,4 +299,3 @@ class Agent_DQN(Agent):
                             file=self.log)
                     self.log_summary(global_step=i, test=False)
                 self.total_step_tracker += 1
-
