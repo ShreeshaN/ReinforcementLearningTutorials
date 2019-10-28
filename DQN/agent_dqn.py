@@ -86,7 +86,8 @@ class Agent_DQN(Agent):
         self.q_network = DQN().to(self.device)
         # Create target network
         self.target_network = DQN().to(self.device)
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
+        # self.optimizer = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
+        self.optimizer = optim.RMSprop(self.q_network.parameters(), lr=args.learning_rate)
 
         self.q_network.train()
         self.target_network.eval()
@@ -152,7 +153,7 @@ class Agent_DQN(Agent):
         # Store transition in replay memory
         state = np.rollaxis(state, 2)
         next_state = np.rollaxis(next_state, 2)
-        self.replay_memory.append((state, tensor(action), tensor(reward), next_state, tensor(terminal)))
+        self.replay_memory.append((state, action, reward, next_state, terminal))
 
     def optimize_network(self):
         current_states = []

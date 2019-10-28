@@ -26,9 +26,8 @@ class DQN(nn.Module):
         self.conv1 = nn.Conv2d(4, 32, 8, 4)
         self.conv2 = nn.Conv2d(32, 64, 4, 2)
         self.conv3 = nn.Conv2d(64, 64, 3, 1)
-        self.fc1 = nn.Linear(7 * 7 * 64, 1024)
-        self.fc2 = nn.Linear(1024, 256)
-        self.fc3 = nn.Linear(256, 4)
+        self.fc1 = nn.Linear(7 * 7 * 64, 512)
+        self.fc2 = nn.Linear(512, 4)
 
     def forward(self, x):
         """
@@ -41,5 +40,4 @@ class DQN(nn.Module):
         x = F.relu(self.conv3(x))
         x = x.view(-1, 7 * 7 * 64)
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return self.fc3(x)
+        return self.fc2(x)

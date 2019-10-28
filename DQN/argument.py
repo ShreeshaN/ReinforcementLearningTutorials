@@ -11,7 +11,7 @@ def add_arguments(parser):
                         default='metrics.json')
     parser.add_argument('--tensorboard_summary', type=str, default='tensorboard_summary')
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--loss_fn', type=str, default='huber')
+    parser.add_argument('--loss_fn', type=str, default='mse')
     parser.add_argument('--exploration_steps', type=int, default=1000000)
     parser.add_argument('--initial_epsilon', type=float, default=0.99)
     parser.add_argument('--learning_rate', type=float, default=0.00015)
