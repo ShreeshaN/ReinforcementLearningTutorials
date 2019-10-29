@@ -15,7 +15,7 @@ def add_arguments(parser):
 
     parser.add_argument('--tensorboard_summary', type=str, default='tensorboard_summary')
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--loss_fn', type=str, default='mse')
+    parser.add_argument('--loss_fn', type=str, default='huber')
     parser.add_argument('--exploration_steps', type=int, default=1000000)
     parser.add_argument('--initial_epsilon', type=float, default=1)
     parser.add_argument('--learning_rate', type=float, default=0.00015)
@@ -37,7 +37,7 @@ def add_arguments(parser):
                         help='')
     parser.add_argument('--no_op_steps', type=int, default=2,
                         help='Maximum number of "do nothing" actions to be performed by the agent at the start of an episode')
-    parser.add_argument('--optimizer',type=str, default='rmsprop', help='Optimizer (Adam or Rmsp)')
+    parser.add_argument('--optimizer',type=str, default='adam', help='Optimizer (Adam or Rmsp)')
 
 
     return parser
