@@ -115,6 +115,7 @@ class Agent_DQN(Agent):
         self.q_values = []
         self.total_loss = []
         self.last_n_rewards = deque([], args.capture_window)
+        self.last_n_qs = deque([], args.capture_window)
 
     def init_game_setting(self):
         """
@@ -222,13 +223,14 @@ class Agent_DQN(Agent):
     def log_summary(self, global_step, test=False):
 
         if not test:
-            self.writer.add_scalar('Train/Episode Reward', sum(self.rewards), global_step)
-            self.writer.add_scalar('Train/Episode Loss', self.total_loss, global_step)
-            self.writer.add_scalar('Train/Episode Q', self.q_values, global_step)
-
-            self.writer.add_scalar('Train/Average Reward', np.mean(self.total_rewards), global_step)
-            self.writer.add_scalar('Train/Average Loss', np.mean(self.total_loss), global_step)
-            self.writer.add_scalar('Train/Average Q', np.mean(self.q_values), global_step)
+            self.writer.add_scalar('Train/Episode Reward', sum(self.rewards), global_step) if len(
+                    self.rewards) > 0 else None
+            self.writer.add_scalar('Train/Average Reward', np.mean(self.last_n_rewards), global_step) if len(
+                    self.total_rewards) > 0 else None
+            self.writer.add_scalar('Train/Average Loss', np.mean(self.total_loss), global_step) if len(
+                    self.total_loss) > 0 else None
+            self.writer.add_scalar('Train/Average Q', np.mean(self.q_values), global_step) if len(
+                self.q_values) > 0 else None
         else:
             self.writer.add_scalar('Test/Average Reward', np.mean(self.test_average_reward), global_step)
         self.writer.flush()
@@ -262,7 +264,7 @@ class Agent_DQN(Agent):
                     # Train network
                     if self.total_step_tracker % self.train_interval == 0:
                         loss = self.optimize_network()
-                        self.total_loss_val[i % self.capture_window] = loss
+                        # self.total_loss_val[i % self.capture_window] = loss
                         self.total_loss.append(loss)
 
                     # Update target network
@@ -289,8 +291,9 @@ class Agent_DQN(Agent):
                 # self.total_q_val[i % self.capture_window] = max(
                 #         torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0).float())),
                 #         self.total_q_val[i % self.capture_window])
+                # self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))
                 self.q_values.append(
-                        torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0).float())))
+                        torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))).detach().numpy())
 
                 if terminal:
 
@@ -309,7 +312,10 @@ class Agent_DQN(Agent):
                     # print(
                     #         f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {self.total_rewards[i % self.capture_window]} | Avg Reward: {np.mean(self.total_rewards):.3f} | AvgQ: {np.mean(self.total_q_val):.3f} | AvgLoss: {np.mean(self.total_loss_val):.3f} | Mode: {mode}",
                     #         file=self.log)
-
+                    print(np.mean(self.q_values))
+                    print(np.mean(self.last_n_rewards))
+                    print(sum(self.rewards))
+                    print(np.mean(self.total_loss))
                     print(
                             f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {sum(self.rewards)} | Avg Reward: {np.mean(self.last_n_rewards):.3f} | AvgQ: {np.mean(self.q_values):.3f} | AvgLoss: {np.mean(self.total_loss):.3f} | Mode: {mode}")
                     print(

@@ -16,10 +16,10 @@ def add_arguments(parser):
     parser.add_argument('--initial_epsilon', type=float, default=1)
     parser.add_argument('--learning_rate', type=float, default=0.00015)
     parser.add_argument('--final_epsilon', type=float, default=0.05)
-    parser.add_argument('--initial_replay_size', type=int, default=10000,
+    parser.add_argument('--initial_replay_size', type=int, default=100,
                         help='Number of steps to populate the replay memory before training starts')
     parser.add_argument('--log_path', type=str, default="dqn_log/", help='')
-    parser.add_argument('--num_replay_memory', type=int, default=10000,
+    parser.add_argument('--num_replay_memory', type=int, default=100,
                         help='Number of replay memory the agent uses for training')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--target_update_interval', type=int, default=5000,
