@@ -293,7 +293,7 @@ class Agent_DQN(Agent):
                 #         self.total_q_val[i % self.capture_window])
                 # self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))
                 self.q_values.append(
-                        torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))).detach().numpy())
+                        torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))).detach().cpu().numpy())
 
                 if terminal:
 
