@@ -1,7 +1,8 @@
 def add_arguments(parser):
+    parser.add_argument('--num_steps', type=int, default = 10000000, help='Number of episodes the agent plays')
+    parser.add_argument('--exp_name', type=str, default = "breakout_dqn", help='')
+
     parser.add_argument('--run_name', type=str, default="dqn_network_for_breakout")
-    parser.add_argument('--use_ddqn', type=bool, default=False)
-    parser.add_argument('--use_dueling_network', type=bool, default=False)
     parser.add_argument('--logfile_path', type=str, default='dqn_log')
     parser.add_argument('--total_episodes', type=int, default=100000)
     parser.add_argument('--capture_window', type=int, default=100, help='Capture average metrics of last "n" episodes')
@@ -9,6 +10,9 @@ def add_arguments(parser):
                         help='Make it true to start training network from the pretrained model mentioned in "test_dqn_model_path"')
     parser.add_argument('--train_metrics_file', type=str, help='Json file that saves metrics. Loaded while retraining',
                         default='metrics.json')
+    parser.add_argument('--ddqn', type=bool, default = False, help='Set True to apply Double Q-learning')
+    parser.add_argument('--dueling', type=bool, default = False, help='Set True to apply Duelinng Network')
+
     parser.add_argument('--tensorboard_summary', type=str, default='tensorboard_summary')
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--loss_fn', type=str, default='mse')
@@ -16,10 +20,10 @@ def add_arguments(parser):
     parser.add_argument('--initial_epsilon', type=float, default=1)
     parser.add_argument('--learning_rate', type=float, default=0.00015)
     parser.add_argument('--final_epsilon', type=float, default=0.05)
-    parser.add_argument('--initial_replay_size', type=int, default=10000,
+    parser.add_argument('--initial_replay_size', type=int, default=100,
                         help='Number of steps to populate the replay memory before training starts')
     parser.add_argument('--log_path', type=str, default="dqn_log/", help='')
-    parser.add_argument('--num_replay_memory', type=int, default=10000,
+    parser.add_argument('--num_replay_memory', type=int, default=100,
                         help='Number of replay memory the agent uses for training')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--target_update_interval', type=int, default=5000,
@@ -31,5 +35,9 @@ def add_arguments(parser):
     parser.add_argument('--test_dqn_model_path', type=str,
                         default="dqn_models/dqn_network_for_breakout_3875000.pt",
                         help='')
+    parser.add_argument('--no_op_steps', type=int, default=2,
+                        help='Maximum number of "do nothing" actions to be performed by the agent at the start of an episode')
+    parser.add_argument('--optimizer',type=str, default='rmsprop', help='Optimizer (Adam or Rmsp)')
+
 
     return parser
