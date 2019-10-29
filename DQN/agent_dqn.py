@@ -197,7 +197,7 @@ class Agent_DQN(Agent):
         for param in self.q_network.parameters():
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-        return loss
+        return loss.detach().cpu().numpy()
 
     def test_network(self, total_episodes=100):
         self.test_average_reward = []
@@ -316,7 +316,7 @@ class Agent_DQN(Agent):
                     print(np.mean(self.q_values))
                     print(np.mean(self.last_n_rewards))
                     print(sum(self.rewards))
-                    print(np.mean(self.total_loss))
+                    print(self.total_loss)
                     print(
                             f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {sum(self.rewards)} | Avg Reward: {np.mean(self.last_n_rewards):.3f} | AvgQ: {np.mean(self.q_values):.3f} | AvgLoss: {np.mean(self.total_loss):.3f} | Mode: {mode}")
                     print(
