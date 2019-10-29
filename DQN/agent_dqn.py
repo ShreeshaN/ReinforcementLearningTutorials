@@ -313,10 +313,6 @@ class Agent_DQN(Agent):
                     # print(
                     #         f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {self.total_rewards[i % self.capture_window]} | Avg Reward: {np.mean(self.total_rewards):.3f} | AvgQ: {np.mean(self.total_q_val):.3f} | AvgLoss: {np.mean(self.total_loss_val):.3f} | Mode: {mode}",
                     #         file=self.log)
-                    print(np.mean(self.q_values))
-                    print(np.mean(self.last_n_rewards))
-                    print(sum(self.rewards))
-                    print(self.total_loss)
                     print(
                             f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {sum(self.rewards)} | Avg Reward: {np.mean(self.last_n_rewards):.3f} | AvgQ: {np.mean(self.q_values):.3f} | AvgLoss: {np.mean(self.total_loss):.3f} | Mode: {mode}")
                     print(
