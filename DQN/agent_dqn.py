@@ -179,7 +179,7 @@ class Agent_DQN(Agent):
         # converting arrays to tensors and assigning them to GPU if available
         current_states, actions, rewards, future_states, terminals = tensor(current_states).to(self.device), tensor(
                 actions).to(self.device), tensor(
-                rewards).to(self.device), tensor(future_states).to(self.device), terminals
+                rewards).to(self.device), tensor(future_states).to(self.device), tensor(terminals).to(self.device)
 
         current_q_values = self.q_network(current_states).gather(1, actions.unsqueeze(1).long()).squeeze(1)
         future_q_values = self.target_network(future_states).detach()
@@ -230,7 +230,7 @@ class Agent_DQN(Agent):
             self.writer.add_scalar('Train/Average Loss', np.mean(self.total_loss), global_step) if len(
                     self.total_loss) > 0 else None
             self.writer.add_scalar('Train/Average Q', np.mean(self.q_values), global_step) if len(
-                self.q_values) > 0 else None
+                    self.q_values) > 0 else None
         else:
             self.writer.add_scalar('Test/Average Reward', np.mean(self.test_average_reward), global_step)
         self.writer.flush()
@@ -293,7 +293,8 @@ class Agent_DQN(Agent):
                 #         self.total_q_val[i % self.capture_window])
                 # self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))
                 self.q_values.append(
-                        torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))).detach().cpu().numpy())
+                        torch.max(
+                            self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0))).detach().cpu().numpy())
 
                 if terminal:
 
