@@ -111,6 +111,11 @@ class Agent_DQN(Agent):
         # Set target_network weight
         self.target_network.load_state_dict(self.q_network.state_dict())
 
+        self.rewards = []
+        self.q_values = []
+        self.total_loss = []
+        self.last_n_rewards = deque([], args.capture_window)
+
     def init_game_setting(self):
         """
         Testing function will call this function at the begining of new game
@@ -171,9 +176,9 @@ class Agent_DQN(Agent):
             terminals.append(data[4])
 
         # converting arrays to tensors and assigning them to GPU if available
-        future_states, current_states, actions, rewards, terminals = tensor(future_states).to(self.device), tensor(
-                current_states).to(self.device), tensor(actions).to(self.device), tensor(rewards).to(
-                self.device), tensor(terminals).to(self.device)
+        current_states, actions, rewards, future_states, terminals = tensor(current_states).to(self.device), tensor(
+                actions).to(self.device), tensor(
+                rewards).to(self.device), tensor(future_states).to(self.device), terminals
 
         current_q_values = self.q_network(current_states).gather(1, actions.unsqueeze(1).long()).squeeze(1)
         future_q_values = self.target_network(future_states).detach()
@@ -217,15 +222,13 @@ class Agent_DQN(Agent):
     def log_summary(self, global_step, test=False):
 
         if not test:
-            self.writer.add_scalar('Train/Episode Reward', self.total_rewards[global_step % self.capture_window],
-                                   global_step)
-            self.writer.add_scalar('Train/Episode Loss', self.total_loss_val[global_step % self.capture_window],
-                                   global_step)
-            self.writer.add_scalar('Train/Episode Q', self.total_q_val[global_step % self.capture_window], global_step)
+            self.writer.add_scalar('Train/Episode Reward', sum(self.rewards), global_step)
+            self.writer.add_scalar('Train/Episode Loss', self.total_loss, global_step)
+            self.writer.add_scalar('Train/Episode Q', self.q_values, global_step)
 
             self.writer.add_scalar('Train/Average Reward', np.mean(self.total_rewards), global_step)
-            self.writer.add_scalar('Train/Average Loss', np.mean(self.total_loss_val), global_step)
-            self.writer.add_scalar('Train/Average Q', np.mean(self.total_q_val), global_step)
+            self.writer.add_scalar('Train/Average Loss', np.mean(self.total_loss), global_step)
+            self.writer.add_scalar('Train/Average Q', np.mean(self.q_values), global_step)
         else:
             self.writer.add_scalar('Test/Average Reward', np.mean(self.test_average_reward), global_step)
         self.writer.flush()
@@ -239,27 +242,20 @@ class Agent_DQN(Agent):
             terminal = False
             observation = self.env.reset()
 
-            # reset metrics
-            self.total_q_val[i % self.capture_window] = -1e9
-            self.total_rewards[i % self.capture_window] = 0
+            # # reset metrics
+            # self.total_q_val[i % self.capture_window] = -1e9
+            # self.total_rewards[i % self.capture_window] = 0
 
             while not terminal:
 
-                # Decay epsilon over time
-                self.decay_epsilon()
                 action = self.make_action(observation, test=False)
                 new_observation, reward, terminal, _ = self.env.step(action)
-                self.total_rewards[i % self.capture_window] += reward
 
-                # Update Q value
-                self.total_q_val[i % self.capture_window] = max(
-                        torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0).float())),
-                        self.total_q_val[i % self.capture_window])
+                # Decay epsilon over time
+                self.decay_epsilon()
 
                 # Store transition in replay memory
                 self.push_to_replay_buffer(observation, action, reward, new_observation, terminal)
-
-                observation = new_observation
 
                 # Do not train until the replay buffer is full
                 if self.total_step_tracker >= self.initial_replay_size:
@@ -267,6 +263,7 @@ class Agent_DQN(Agent):
                     if self.total_step_tracker % self.train_interval == 0:
                         loss = self.optimize_network()
                         self.total_loss_val[i % self.capture_window] = loss
+                        self.total_loss.append(loss)
 
                     # Update target network
                     if self.total_step_tracker % self.target_update_interval == 0:
@@ -284,7 +281,21 @@ class Agent_DQN(Agent):
                         # self.test_network()
                         self.log_summary(global_step=i, test=True)
 
+                # Update rewards
+                # self.total_rewards[i % self.capture_window] += reward
+                self.rewards.append(reward)
+
+                # Update Q value
+                # self.total_q_val[i % self.capture_window] = max(
+                #         torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0).float())),
+                #         self.total_q_val[i % self.capture_window])
+                self.q_values.append(
+                        torch.max(self.q_network(tensor(np.rollaxis(observation, 2)).unsqueeze(0).float())))
+
                 if terminal:
+
+                    self.last_n_rewards.append(sum(self.rewards))
+
                     if self.total_step_tracker < self.initial_replay_size:
                         mode = 'random'
                     elif self.initial_replay_size <= self.total_step_tracker < self.initial_replay_size + self.exploration_steps:
@@ -293,10 +304,21 @@ class Agent_DQN(Agent):
                         mode = 'exploit'
 
                     # Log metrics
+                    # print(
+                    #         f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {self.total_rewards[i % self.capture_window]} | Avg Reward: {np.mean(self.total_rewards):.3f} | AvgQ: {np.mean(self.total_q_val):.3f} | AvgLoss: {np.mean(self.total_loss_val):.3f} | Mode: {mode}")
+                    # print(
+                    #         f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {self.total_rewards[i % self.capture_window]} | Avg Reward: {np.mean(self.total_rewards):.3f} | AvgQ: {np.mean(self.total_q_val):.3f} | AvgLoss: {np.mean(self.total_loss_val):.3f} | Mode: {mode}",
+                    #         file=self.log)
+
                     print(
-                            f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {self.total_rewards[i % self.capture_window]} | Avg Reward: {np.mean(self.total_rewards):.3f} | AvgQ: {np.mean(self.total_q_val):.3f} | AvgLoss: {np.mean(self.total_loss_val):.3f} | Mode: {mode}")
+                            f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {sum(self.rewards)} | Avg Reward: {np.mean(self.last_n_rewards):.3f} | AvgQ: {np.mean(self.q_values):.3f} | AvgLoss: {np.mean(self.total_loss):.3f} | Mode: {mode}")
                     print(
-                            f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {self.total_rewards[i % self.capture_window]} | Avg Reward: {np.mean(self.total_rewards):.3f} | AvgQ: {np.mean(self.total_q_val):.3f} | AvgLoss: {np.mean(self.total_loss_val):.3f} | Mode: {mode}",
+                            f"Episode: {i} | Timestep: {self.total_step_tracker} | Epsilon: {self.epsilon:.3f} | Reward: {sum(self.rewards)} | Avg Reward: {np.mean(self.last_n_rewards):.3f} | AvgQ: {np.mean(self.q_values):.3f} | AvgLoss: {np.mean(self.total_loss):.3f} | Mode: {mode}",
                             file=self.log)
                     self.log_summary(global_step=i, test=False)
+                    self.rewards = []
+                    self.q_values = []
+                    self.total_loss = []
+
                 self.total_step_tracker += 1
+                observation = new_observation

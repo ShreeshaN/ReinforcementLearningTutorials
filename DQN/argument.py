@@ -13,9 +13,9 @@ def add_arguments(parser):
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--loss_fn', type=str, default='mse')
     parser.add_argument('--exploration_steps', type=int, default=1000000)
-    parser.add_argument('--initial_epsilon', type=float, default=0.99)
+    parser.add_argument('--initial_epsilon', type=float, default=1)
     parser.add_argument('--learning_rate', type=float, default=0.00015)
-    parser.add_argument('--final_epsilon', type=float, default=0.1)
+    parser.add_argument('--final_epsilon', type=float, default=0.05)
     parser.add_argument('--initial_replay_size', type=int, default=10000,
                         help='Number of steps to populate the replay memory before training starts')
     parser.add_argument('--log_path', type=str, default="dqn_log/", help='')
@@ -31,4 +31,5 @@ def add_arguments(parser):
     parser.add_argument('--test_dqn_model_path', type=str,
                         default="dqn_models/dqn_network_for_breakout_3875000.pt",
                         help='')
+
     return parser
