@@ -124,11 +124,6 @@ class Agent_DQN(Agent):
 
         self.writer = SummaryWriter(args.tensorboard_summary)
 
-    def norm_state(self, state):
-        state_min = np.min(state)
-        state_max = np.max(state)
-        return (state - state_min) / (state_max - state_min)
-
     def init_game_setting(self):
         """
         Testing function will call this function at the begining of new game
@@ -264,15 +259,13 @@ class Agent_DQN(Agent):
         while self.t <= self.num_steps:
             terminal = False
             observation = self.env.reset()
-            observation = self.norm_state(observation)
             observation_channel_first = np.rollaxis(observation, 2)
             for _ in range(random.randint(1, self.no_op_steps)):
                 observation, _, _, _ = self.env.step(0)  # Do nothing
             while not terminal:
                 action = self.make_action(observation_channel_first, test=False)
                 new_observation, reward, terminal, _ = self.env.step(action)
-                reward = max(-1.0, min(reward, 1.0))
-                new_observation = self.norm_state(new_observation)
+                # reward = max(-1.0, min(reward, 1.0))
                 new_observation_channel_first = np.rollaxis(new_observation, 2)
                 self.run(observation_channel_first, action, reward, terminal, new_observation_channel_first)
                 observation_channel_first = new_observation_channel_first

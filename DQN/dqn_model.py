@@ -76,19 +76,3 @@ class DQN(nn.Module):
         self.bn1.weight = new_weights['bn1']
         self.bn2.weight = new_weights['bn2']
         self.bn3.weight = new_weights['bn3']
-
-
-    def get_weights(self):
-        return {'conv1': self.conv1.weight,
-                'conv2': self.conv2.weight,
-                'conv3': self.conv3.weight,
-                'fc1': self.fc1.weight,
-                'fc2': self.fc2.weight,
-                # 'fc3': self.fc3.weight,
-                'bn1': self.bn1.weight,
-                'bn2': self.bn2.weight,
-                'bn3': self.bn3.weight
-                }
-
-    def save_model(self, path):
-        torch.save(self.state_dict(), path)
