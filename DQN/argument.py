@@ -22,6 +22,7 @@ def add_arguments(parser):
     parser.add_argument('--num_replay_memory', type=int, default=10000,
                         help='Number of replay memory the agent uses for training')
     parser.add_argument('--batch_size', type=int, default=32, help='Mini batch size')
+    parser.add_argument('--tensorboard_summary', type=str, default='tensorboard_summary')
     parser.add_argument('--target_update_interval', type=int, default=5000,
                         help='The frequency with which the target network is updated')
     parser.add_argument('--train_interval', type=int, default=4,
