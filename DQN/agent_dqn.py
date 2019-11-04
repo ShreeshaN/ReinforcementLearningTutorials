@@ -16,6 +16,7 @@ from DQN.dqn_model import DQN
 from torch.autograd import Variable
 
 from DQN.utils import tensor
+from torch.utils.tensorboard import SummaryWriter
 
 """
 you can import any package and define any extra function as you need
@@ -121,6 +122,8 @@ class Agent_DQN(Agent):
             ###########################
             # YOUR IMPLEMENTATION HERE #
 
+        self.writer = SummaryWriter(args.tensorboard_summary)
+
     def norm_state(self, state):
         state_min = np.min(state)
         state_max = np.max(state)
@@ -205,6 +208,17 @@ class Agent_DQN(Agent):
         self.push(state, action, reward, next_state, terminal)
 
         ###########################
+
+    def log_summary(self, global_step):
+        self.writer.add_scalar('Train/Average Reward', np.mean(self.last_100_reward), global_step) if len(
+                self.last_100_reward) > 0 else None
+        self.writer.add_scalar('Train/Average Q', self.total_q_max / float(self.duration),
+                               global_step) if self.duration > 0 else None
+        self.writer.add_scalar('Train/Average Loss',
+                               self.total_loss / (float(self.duration) / float(self.train_interval)),
+                               global_step) if self.duration > 0 and self.train_interval > 0 else None
+
+        self.writer.flush()
 
     def train_network(self):
         state_batch = []
@@ -303,17 +317,21 @@ class Agent_DQN(Agent):
                 mode = 'explore'
             else:
                 mode = 'exploit'
+            self.episode = self.episode + 1
             print(
                     'EPISODE: {0:2d} | TIMESTEP: {1:2d} | DURATION: {2:2d} | EPSILON: {3:.5f} | REWARD: {4:.3f} | AVG_REWARD: {5:.3f} | AVG_MAX_Q: {6:.4f} | AVG_LOSS: {7:.5f} | MODE: {8}'.format(
-                            self.episode + 1, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
+                            self.episode, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
                             np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
-                            self.total_loss / (float(self.duration) / float(self.train_interval)), mode))
+                                                           self.total_loss / (float(self.duration) / float(
+                                                               self.train_interval)), mode))
             print(
                     'EPISODE: {0:2d} | TIMESTEP: {1:2d} | DURATION: {2:2d} | EPSILON: {3:.5f} | REWARD: {4:.3f} | AVG_REWARD: {5:.3f} | AVG_MAX_Q: {6:.4f} | AVG_LOSS: {7:.5f} | MODE: {8}'.format(
-                            self.episode + 1, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
+                            self.episode, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
                             np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
-                            self.total_loss / (float(self.duration) / float(self.train_interval)), mode),
+                                                           self.total_loss / (float(self.duration) / float(
+                                                               self.train_interval)), mode),
                     file=self.log)
+            self.log_summary(global_step=self.episode)
 
             # Init for new game
             self.total_reward = 0
