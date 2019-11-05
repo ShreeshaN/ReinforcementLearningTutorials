@@ -236,11 +236,33 @@ class Agent_DQN(Agent):
 
         # Q value from target network
         target_q_values_batch = self.target_network(tensor(next_state_batch).float())
-        y_batch = tensor(reward_batch) + tensor(1 - terminal_batch) * self.gamma * torch.max(target_q_values_batch,
-                                                                                             dim=-1).values
+        # y_batch = tensor(reward_batch) + tensor(1 - terminal_batch) * self.gamma * torch.max(target_q_values_batch,
+        #                                                                                      dim=-1).values
+
         # Loss
         output = self.q_network(tensor(state_batch).float())
         output = output[[x for x in range(self.batch_size)], [action_batch]].squeeze(0)
+        # current_q_values = self.q_network(current_states).gather(1, actions.unsqueeze(1).long()).squeeze(1)
+        #
+        # future_q_values = self.target_network(future_states).detach()
+        # if self.ddqn:
+        #     best_actions = torch.argmax(self.q_network(future_states), dim=-1)
+        #     future_q_values = future_q_values.gather(1, tensor(best_actions).unsqueeze(1)).squeeze(1)
+        # else:
+        #     future_q_values = future_q_values.max(1)[0]
+        #
+        # future_q_values = future_q_values * (1 - terminals)
+        # target_q_values = tensor(rewards) + (self.gamma * future_q_values)
+        # loss = self.loss_fn(current_q_values, target_q_values)
+
+        if self.ddqn:
+            best_actions = torch.argmax(self.q_network(tensor(next_state_batch).float()), dim=-1)
+            target_q_values_batch = target_q_values_batch.gather(1, tensor(best_actions).unsqueeze(1)).squeeze(1)
+        else:
+            target_q_values_batch = torch.max(target_q_values_batch, dim=-1).values
+
+        y_batch = tensor(reward_batch) + (tensor(1 - terminal_batch) * self.gamma * target_q_values_batch)
+
         loss = F.smooth_l1_loss(output, y_batch)
 
         self.optimizer.zero_grad()
@@ -265,7 +287,6 @@ class Agent_DQN(Agent):
             while not terminal:
                 action = self.make_action(observation_channel_first, test=False)
                 new_observation, reward, terminal, _ = self.env.step(action)
-                # reward = max(-1.0, min(reward, 1.0))
                 new_observation_channel_first = np.rollaxis(new_observation, 2)
                 self.run(observation_channel_first, action, reward, terminal, new_observation_channel_first)
                 observation_channel_first = new_observation_channel_first
@@ -316,13 +337,13 @@ class Agent_DQN(Agent):
                             self.episode, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
                             np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
                                                            self.total_loss / (float(self.duration) / float(
-                                                               self.train_interval)), mode))
+                                                                   self.train_interval)), mode))
             print(
                     'EPISODE: {0:2d} | TIMESTEP: {1:2d} | DURATION: {2:2d} | EPSILON: {3:.5f} | REWARD: {4:.3f} | AVG_REWARD: {5:.3f} | AVG_MAX_Q: {6:.4f} | AVG_LOSS: {7:.5f} | MODE: {8}'.format(
                             self.episode, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
                             np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
                                                            self.total_loss / (float(self.duration) / float(
-                                                               self.train_interval)), mode),
+                                                                   self.train_interval)), mode),
                     file=self.log)
             self.log_summary(global_step=self.episode)
 

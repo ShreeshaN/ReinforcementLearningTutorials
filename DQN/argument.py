@@ -41,7 +41,7 @@ def add_arguments(parser):
                         help='')
 
     parser.add_argument('--exp_name', type=str, default="breakout_dqn", help='')
-    parser.add_argument('--ddqn', type=bool, default=False, help='Set True to apply Double Q-learning')
+    parser.add_argument('--ddqn', type=bool, default=True, help='Set True to apply Double Q-learning')
     parser.add_argument('--dueling', type=bool, default=False, help='Set True to apply Duelinng Network')
     parser.add_argument('--test_path', type=str, default='saved_dqn_networks/breakout_dqn_4700000.pt',
                         help='Model used during testing')
