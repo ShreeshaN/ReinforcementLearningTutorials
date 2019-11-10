@@ -187,7 +187,7 @@ class Agent_DQN(Agent):
         state_batch, action_batch, reward_batch, next_state_batch, terminal_batch = tensor(state_batch).to(
                 self.device).float(), tensor(action_batch).to(self.device), tensor(reward_batch).to(
                 self.device), tensor(
-                next_state_batch).to(self.device).float(), tensor(terminal_batch)
+                next_state_batch).to(self.device).float(), tensor(terminal_batch).to(self.device)
 
         q_values = self.q_network(state_batch)
         q_values = q_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
