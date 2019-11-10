@@ -76,8 +76,8 @@ class MetaData(object):
             #         f" | Len: {self.data.ep_len} | EPS: {self.data.epsilon:.5f} | R: {self.data.reward} | AR: {self.data.avg_reward:.3f}"
             #         f" | MAQ:{self.data.max_avg_q:.2f} | L: {self.data.loss:.2f} | AL: {self.data.avg_loss:.4f} | Mode: {self.data.mode}")
 
-            print("E: ", self.data.episode, " |  Step: ", self.data.step, " | T: ", self.data.time, " | ET: ",
-                  self.data.time_elapsed, "| Len: ", self.data.ep_len, " | EPS: ", self.data.epsilon, " | R: ",
+            print("E: ", self.data.episode, " |  Step: ", self.data.step, "| Len: ", self.data.ep_len, " | EPS: ",
+                  self.data.epsilon, " | R: ",
                   self.data.reward, " | AR: ", self.data.avg_reward, " | MAQ:", self.data.max_avg_q, " | L: ",
                   self.data.loss, " | AL: ", self.data.avg_loss, " | Mode: ", self.data.mode)
         self.fp.write(self.data._asdict().values().__str__().replace('odict_values([', '').replace('])', '' + '\n'))
