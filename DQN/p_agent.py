@@ -133,8 +133,8 @@ class Agent_DQN(Agent):
         self.position = 0
         self.transition = namedtuple('Transition',
                                      ('state', 'action', 'next_state', 'reward', 'done'))
-        self.args.save_dir += f'/{self.exp_id}/'
-        os.system(f"mkdir -p {self.args.save_dir}")
+        self.args.save_dir += '/' + str({self.exp_id}) + '/'
+        os.system(f"mkdir -p " + self.args.save_dir)
         self.meta = MetaData(fp=open(os.path.join(self.args.save_dir, 'result.csv'), 'w'), args=self.args)
         self.eps_delta = (self.args.eps - self.args.eps_min) / self.args.eps_decay_window
         self.is_cuda_available = torch.cuda.is_available()
@@ -276,8 +276,8 @@ class Agent_DQN(Agent):
         :param i_episode: Episode Number
         """
         if i_episode % self.args.save_freq == 0:
-            model_file = os.path.join(self.args.save_dir, f'model_e{i_episode}.th')
-            meta_file = os.path.join(self.args.save_dir, f'model_e{i_episode}.meta')
+            model_file = os.path.join(self.args.save_dir, 'model_e' + i_episode.th)
+            meta_file = os.path.join(self.args.save_dir, 'model_e' + i_episode.meta)
             print("Saving model at ", model_file)
             with open(model_file, 'wb') as f:
                 torch.save(self.policy_net, f)
