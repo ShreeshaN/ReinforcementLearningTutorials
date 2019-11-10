@@ -254,7 +254,7 @@ class Agent_DQN(Agent):
                     print('Updating target network')
                     self.target_network.load_state_dict(self.q_network.state_dict())
 
-                if len(self.replay_memory) > self.step:
+                if self.step > len(self.replay_memory):
                     self.epsilon = max(self.final_epsilon, self.initial_epsilon - self.epsilon_step * self.step)
                     if self.epsilon > self.final_epsilon:
                         self.mode = 'Explore'

@@ -25,7 +25,7 @@ def parse():
     parser.add_argument('--tensorboard_summary_path', type=str, default='tensorboard_summary', help='')
     parser.add_argument('--model_test_path', type=str, default='dqn_model_5000.pt', help='')
     parser.add_argument('--metrics_capture_window', type=int, default=10000, help='')
-    parser.add_argument('--replay_size', type=int, default=10000, help='')
+    parser.add_argument('--replay_size', type=int, default=100, help='')
     parser.add_argument('--total_num_steps', type=int, default=5e7, help='')
     parser.add_argument('--learning_rate', type=float, default=1.5e-4, help='')
     parser.add_argument('--gamma', type=float, default=0.99, help='')
