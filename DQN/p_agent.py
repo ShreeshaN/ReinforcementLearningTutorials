@@ -133,8 +133,8 @@ class Agent_DQN(Agent):
         self.position = 0
         self.transition = namedtuple('Transition',
                                      ('state', 'action', 'next_state', 'reward', 'done'))
-        self.args.save_dir += '/' + str({self.exp_id}) + '/'
-        os.system(f"mkdir -p " + self.args.save_dir)
+        self.args.save_dir += '/' + str(self.exp_id) + '/'
+        os.system("mkdir -p " + self.args.save_dir)
         self.meta = MetaData(fp=open(os.path.join(self.args.save_dir, 'result.csv'), 'w'), args=self.args)
         self.eps_delta = (self.args.eps - self.args.eps_min) / self.args.eps_decay_window
         self.is_cuda_available = torch.cuda.is_available()
