@@ -185,8 +185,6 @@ class Agent_DQN(Agent):
         if len(self.replay_memory) < self.replay_size:
             return 0
 
-        self.mode = "Explore"
-
         state_batch = []
         action_batch = []
         reward_batch = []
@@ -257,7 +255,9 @@ class Agent_DQN(Agent):
                     self.target_network.load_state_dict(self.q_network.state_dict())
 
                 self.epsilon = max(self.final_epsilon, self.initial_epsilon - self.epsilon_step * self.step)
-                if self.epsilon == self.final_epsilon:
+                if self.epsilon > self.final_epsilon:
+                    self.mode = 'Explore'
+                else:
                     self.mode = 'Exploit'
 
                 action, q = self.make_action(state, test=False)
