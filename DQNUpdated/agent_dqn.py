@@ -183,16 +183,19 @@ class Agent_DQN(Agent):
             next_state_batch.append(data[3])
             terminal_batch.append(data[4])
 
-        terminal_batch = np.array(terminal_batch) + 0
+        state_batch, action_batch, reward_batch, next_state_batch, terminal_batch = tensor(state_batch).to(
+                self.device).float(), tensor(action_batch).to(self.device), tensor(reward_batch).to(
+                self.device), tensor(
+                next_state_batch).to(self.device).float(), tensor(terminal_batch).to(self.device)
 
-        q_values = self.q_network(tensor(state_batch).float())
-        q_values = q_values.gather(1, tensor(action_batch).unsqueeze(1)).squeeze(1)
+        q_values = self.q_network(state_batch)
+        q_values = q_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
 
-        target_values = self.target_network(tensor(next_state_batch).float())
+        target_values = self.target_network(next_state_batch)
         target_values, _ = target_values.max(1)
 
-        target_values = (1 - tensor(terminal_batch)) * target_values.squeeze(0)
-        target_values = tensor(reward_batch) + (self.gamma * target_values)
+        target_values = (1 - terminal_batch) * target_values.squeeze(0)
+        target_values = reward_batch + (self.gamma * target_values)
 
         loss = self.loss_function(q_values, target_values)
         self.optimiser.zero_grad()
