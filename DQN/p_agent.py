@@ -45,7 +45,7 @@ class JsonEncoder(json.JSONEncoder):
             try:
                 return obj.default()
             except Exception:
-                return f'Object not serializable - {obj}'
+                return 'Object not serializable - ', obj
 
 
 class MetaData(object):
