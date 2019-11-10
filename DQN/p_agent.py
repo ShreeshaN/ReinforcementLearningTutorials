@@ -240,6 +240,9 @@ class Agent_DQN(Agent):
 
         self.mode = "Explore"
         batch_state, batch_action, batch_next_state, batch_reward, batch_done = self.replay_buffer(self.args.batch_size)
+        batch_state, batch_action, batch_next_state, batch_reward, batch_done = batch_state.to(
+                self.device), batch_action.to(self.device), batch_next_state.to(self.device), batch_reward.to(
+                self.device), batch_done.to(self.device)
         policy_max_q = self.policy_net(batch_state).gather(1, batch_action.unsqueeze(1)).squeeze(1)
         target_max_q = self.target_net(batch_next_state).detach().max(1)[0].squeeze(0) * self.args.gamma * (
                 1 - batch_done)
