@@ -236,7 +236,7 @@ class Agent_DQN(Agent):
         for episode in range(self.episodes):
             state = self.env.reset()
             state = torch.reshape(tensor(state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1, 2).to(
-                self.device)
+                    self.device)
             done = False
             episode_reward = []
             episode_loss = []
@@ -254,18 +254,19 @@ class Agent_DQN(Agent):
                     print('Updating target network')
                     self.target_network.load_state_dict(self.q_network.state_dict())
 
-                self.epsilon = max(self.final_epsilon, self.initial_epsilon - self.epsilon_step * self.step)
-                if self.epsilon > self.final_epsilon:
-                    self.mode = 'Explore'
-                else:
-                    self.mode = 'Exploit'
+                if len(self.replay_memory) > self.step:
+                    self.epsilon = max(self.final_epsilon, self.initial_epsilon - self.epsilon_step * self.step)
+                    if self.epsilon > self.final_epsilon:
+                        self.mode = 'Explore'
+                    else:
+                        self.mode = 'Exploit'
 
                 action, q = self.make_action(state, test=False)
                 next_state, reward, done, _ = self.env.step(action)
 
                 next_state = torch.reshape(tensor(next_state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1,
                                                                                                             2).to(
-                    self.device)
+                        self.device)
 
                 self.replay_memory.append(
                         (state, torch.tensor([int(action)]), torch.tensor([reward], device=self.device), next_state,
