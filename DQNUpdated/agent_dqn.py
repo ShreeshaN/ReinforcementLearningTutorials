@@ -125,17 +125,17 @@ class Agent_DQN(Agent):
         """
         ###########################
         # YOUR IMPLEMENTATION HERE #
-        observation = np.rollaxis(observation, 2)
+        observation = tensor(np.rollaxis(observation, 2)).to(self.device)
         if not test:
             if self.epsilon >= random.random() or self.step < self.replay_size:
                 action = random.randrange(self.num_actions)
             else:
-                action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
+                action = torch.argmax(self.q_network(observation.unsqueeze(0).float()).detach()).item()
         else:
             if random.random() >= 0.005:
                 action = random.randrange(self.num_actions)
             else:
-                action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
+                action = torch.argmax(self.q_network(observation.unsqueeze(0).float()).detach()).item()
 
         if self.epsilon > self.final_epsilon and self.step >= self.replay_size:
             self.epsilon -= self.epsilon_step
