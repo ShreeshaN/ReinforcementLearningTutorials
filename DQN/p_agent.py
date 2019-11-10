@@ -276,8 +276,8 @@ class Agent_DQN(Agent):
         :param i_episode: Episode Number
         """
         if i_episode % self.args.save_freq == 0:
-            model_file = os.path.join(self.args.save_dir, 'model_e' + i_episode.th)
-            meta_file = os.path.join(self.args.save_dir, 'model_e' + i_episode.meta)
+            model_file = os.path.join(self.args.save_dir, 'model_e' + str(i_episode) + '.th')
+            meta_file = os.path.join(self.args.save_dir, 'model_e' + str(i_episode) + '.meta')
             print("Saving model at ", model_file)
             with open(model_file, 'wb') as f:
                 torch.save(self.policy_net, f)
