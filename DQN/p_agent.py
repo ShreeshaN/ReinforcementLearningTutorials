@@ -71,10 +71,15 @@ class MetaData(object):
         """
         self.data = self.transition(*args)
         if self.data.episode % self.args.disp_freq == 0:
-            print(
-                    f"E: {self.data.episode} |  Step: {self.data.step} | T: {self.data.time:.2f} | ET: {self.data.time_elapsed:.2f}"
-                    f" | Len: {self.data.ep_len} | EPS: {self.data.epsilon:.5f} | R: {self.data.reward} | AR: {self.data.avg_reward:.3f}"
-                    f" | MAQ:{self.data.max_avg_q:.2f} | L: {self.data.loss:.2f} | AL: {self.data.avg_loss:.4f} | Mode: {self.data.mode}")
+            # print(
+            #         f"E: {self.data.episode} |  Step: {self.data.step} | T: {self.data.time:.2f} | ET: {self.data.time_elapsed:.2f}"
+            #         f" | Len: {self.data.ep_len} | EPS: {self.data.epsilon:.5f} | R: {self.data.reward} | AR: {self.data.avg_reward:.3f}"
+            #         f" | MAQ:{self.data.max_avg_q:.2f} | L: {self.data.loss:.2f} | AL: {self.data.avg_loss:.4f} | Mode: {self.data.mode}")
+
+            print("E: ", self.data.episode, " |  Step: ", self.data.step, " | T: ", self.data.time, " | ET: ",
+                  self.data.time_elapsed, "| Len: ", self.data.ep_len, " | EPS: ", self.data.epsilon, " | R: ",
+                  self.data.reward, " | AR: ", self.data.avg_reward, " | MAQ:", self.data.max_avg_q, " | L: ",
+                  self.data.loss, " | AL: ", self.data.avg_loss, " | Mode: ", self.data.mode)
         self.fp.write(self.data._asdict().values().__str__().replace('odict_values([', '').replace('])', '' + '\n'))
 
     def load(self, f):
@@ -273,7 +278,7 @@ class Agent_DQN(Agent):
         if i_episode % self.args.save_freq == 0:
             model_file = os.path.join(self.args.save_dir, f'model_e{i_episode}.th')
             meta_file = os.path.join(self.args.save_dir, f'model_e{i_episode}.meta')
-            print(f"Saving model at {model_file}")
+            print("Saving model at ", model_file)
             with open(model_file, 'wb') as f:
                 torch.save(self.policy_net, f)
             with open(meta_file, 'w') as f:
@@ -293,7 +298,7 @@ class Agent_DQN(Agent):
         Load Model
         :return:
         """
-        print(f"Restoring model from {self.args.load_dir} . . . ")
+        print("Restoring model from ", self.args.load_dir)
         self.policy_net = torch.load(self.args.load_dir,
                                      map_location=self.device).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -302,7 +307,7 @@ class Agent_DQN(Agent):
             self.t = self.meta.data.step
         else:
             self.cur_eps = 0.01
-        print(f"Model successfully restored.")
+        print("Model successfully restored.")
 
     def train(self):
         """
