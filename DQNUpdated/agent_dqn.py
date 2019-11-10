@@ -183,6 +183,7 @@ class Agent_DQN(Agent):
             next_state_batch.append(data[3])
             terminal_batch.append(data[4])
 
+        terminal_batch = np.array(terminal_batch) + 0
         state_batch, action_batch, reward_batch, next_state_batch, terminal_batch = tensor(state_batch).to(
                 self.device).float(), tensor(action_batch).to(self.device), tensor(reward_batch).to(
                 self.device), tensor(
