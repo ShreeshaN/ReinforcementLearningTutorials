@@ -265,10 +265,10 @@ class Agent_DQN(Agent):
         :return: nchw state
         """
         if not isinstance(state, torch.Tensor):
-            state = torch.tensor(state, dtype=torch.float32)
+            state = torch.tensor(state, dtype=torch.float32).to(self.device)
         if state.shape[1] == 4:
             return state
-        return torch.reshape(state, [1, 84, 84, 4]).permute(0, 3, 1, 2)
+        return torch.reshape(state, [1, 84, 84, 4]).permute(0, 3, 1, 2).to(self.device)
 
     def save_model(self, i_episode):
         """
