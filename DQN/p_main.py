@@ -8,7 +8,7 @@ def parse():
     parser = argparse.ArgumentParser(description="DS595/CS525 RL Project 3")
     parser.add_argument('--env_name', default=None, help='environment name')
     parser.add_argument('--train_dqn', action='store_true', help='whether train DQN')
-    parser.add_argument('--test_dqn', action='store_true', help='whether test DQN', default=True)
+    parser.add_argument('--test_dqn', action='store_true', help='whether test DQN')
     parser.add_argument('--max_episodes', type=int, default=10000000)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--eps', type=float, default=0.99)
