@@ -247,11 +247,16 @@ class Agent_DQN(Agent):
 
                 state = next_state
                 if done:
-                    print(
-                            f'Episode:{episode} | Steps:{self.step} | Reward:{sum(episode_reward)} | Loss: {np.mean(episode_loss)} | Mode: {mode}')
-                    print(
-                            f'Episode:{episode} | Steps:{self.step} | Reward:{sum(episode_reward)} | Loss: {np.mean(episode_loss)} | Mode: {mode}',
-                            file=self.log_file)
+                    # print(
+                    #         f'Episode:{episode} | Steps:{self.step} | Reward:{sum(episode_reward)} | Loss: {np.mean(episode_loss)} | Mode: {mode}')
+                    # print(
+                    #         f'Episode:{episode} | Steps:{self.step} | Reward:{sum(episode_reward)} | Loss: {np.mean(episode_loss)} | Mode: {mode}',
+                    #         file=self.log_file)
+
+                    print('Episode:', episode, ' | Steps:', self.step, ' | Reward: ', sum(episode_reward), ' | Loss: ',
+                          np.mean(episode_loss), ' | Mode: ', mode)
+                    print('Episode:', episode, ' | Steps:', self.step, ' | Reward: ', sum(episode_reward), ' | Loss: ',
+                          np.mean(episode_loss), ' | Mode: ', mode, file=self.log_file)
                     self.log_summary(episode, episode_loss, episode_reward)
                     episode_reward.clear()
                     episode_loss.clear()
