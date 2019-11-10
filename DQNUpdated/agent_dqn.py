@@ -20,6 +20,7 @@ import torch.optim as optim
 from DQNUpdated.agent import Agent
 from DQNUpdated.dqn_model import DQN
 from torch.utils.tensorboard import SummaryWriter
+from torch.autograd import Variable
 
 """
 you can import any package and define any extra function as you need
@@ -43,6 +44,7 @@ class Agent_DQN(Agent):
         """
 
         super(Agent_DQN, self).__init__(env)
+
         ###########################
         # YOUR IMPLEMENTATION HERE #
         self.run_name = args.run_name
@@ -58,6 +60,7 @@ class Agent_DQN(Agent):
         # Environment and network parameters
         self.env = env
         self.num_actions = env.action_space.n
+        self.action_list = np.arange(self.num_actions)
         self.metrics_capture_window = args.metrics_capture_window
         self.replay_size = args.replay_size
         self.replay_memory = deque([], self.replay_size)
@@ -79,9 +82,10 @@ class Agent_DQN(Agent):
         self.target_network = DQN().to(self.device)
         self.loss_function = F.smooth_l1_loss
         self.optimiser = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
-
+        self.probability_list = np.zeros(env.action_space.n, np.float32)
         self.q_network.train()
         self.target_network.eval()
+        self.mode = "Random"
 
         # create necessary paths
         self.create_dirs()
@@ -125,22 +129,31 @@ class Agent_DQN(Agent):
         """
         ###########################
         # YOUR IMPLEMENTATION HERE #
-        observation = tensor(np.rollaxis(observation, 2)).to(self.device)
-        if not test:
-            if self.epsilon >= random.random() or self.step < self.replay_size:
-                action = random.randrange(self.num_actions)
-            else:
-                action = torch.argmax(self.q_network(observation.unsqueeze(0).float()).detach()).item()
-        else:
-            if random.random() >= 0.005:
-                action = random.randrange(self.num_actions)
-            else:
-                action = torch.argmax(self.q_network(observation.unsqueeze(0).float()).detach()).item()
-
-        if self.epsilon > self.final_epsilon and self.step >= self.replay_size:
-            self.epsilon -= self.epsilon_step
-
-        return action
+        # if not test:
+        #     if self.epsilon >= random.random() or self.step < self.replay_size:
+        #         action = random.randrange(self.num_actions)
+        #     else:
+        #         action = torch.argmax(self.q_network(observation.unsqueeze(0).float()).detach()).item()
+        # else:
+        #     if random.random() >= 0.005:
+        #         action = random.randrange(self.num_actions)
+        #     else:
+        #         action = torch.argmax(self.q_network(observation.unsqueeze(0).float()).detach()).item()
+        #
+        # return action,
+        with torch.no_grad():
+            # Fill up probability list equal for all actions
+            self.probability_list.fill(self.epsilon / self.num_actions)
+            # Fetch q from the model prediction
+            q, argq = self.q_network(tensor(observation).float()).data.cpu().max(1)
+            # Increase the probability for the selected best action
+            self.probability_list[argq[0].item()] += 1 - self.epsilon
+            # Use random choice to decide between a random action / best action
+            action = torch.tensor([np.random.choice(self.action_list, p=self.probability_list)])
+            if not test:
+                return action.item(), q
+        ###########################
+        return action.item()
 
     ###########################
 
@@ -168,6 +181,12 @@ class Agent_DQN(Agent):
     #     return
 
     def optimize_network(self):
+
+        if len(self.replay_memory) < self.replay_size:
+            return 0
+
+        self.mode = "Explore"
+
         state_batch = []
         action_batch = []
         reward_batch = []
@@ -176,27 +195,26 @@ class Agent_DQN(Agent):
 
         # Sample random minibatch of transition from replay memory
         minibatch = random.sample(self.replay_memory, self.batch_size)
-        for data in minibatch:
-            state_batch.append(data[0])
-            action_batch.append(data[1])
-            reward_batch.append(data[2])
-            next_state_batch.append(data[3])
-            terminal_batch.append(data[4])
+        state_batch, action_batch, reward_batch, next_state_batch, terminal_batch = map(
+                lambda x: Variable(torch.cat(x, 0)), zip(*minibatch))
 
-        terminal_batch = np.array(terminal_batch) + 0
-        state_batch, action_batch, reward_batch, next_state_batch, terminal_batch = tensor(state_batch).to(
-                self.device).float(), tensor(action_batch).to(self.device), tensor(reward_batch).to(
-                self.device), tensor(
-                next_state_batch).to(self.device).float(), tensor(terminal_batch).to(self.device).float()
+        # for data in minibatch:
+        #     state_batch.append(data[0])
+        #     action_batch.append(data[1])
+        #     reward_batch.append(data[2])
+        #     next_state_batch.append(data[3])
+        #     terminal_batch.append(data[4])
+        #
+        # terminal_batch = np.array(terminal_batch) + 0
 
-        q_values = self.q_network(state_batch)
-        q_values = q_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
+        # state_batch, action_batch, reward_batch, next_state_batch, terminal_batch = tensor(state_batch).to(
+        #         self.device).float(), tensor(action_batch).to(self.device), tensor(reward_batch).to(
+        #         self.device), tensor(
+        #         next_state_batch).to(self.device).float(), tensor(terminal_batch).to(self.device).float()
 
-        target_values = self.target_network(next_state_batch)
-        target_values, _ = target_values.max(1)
-
-        target_values = (1 - terminal_batch) * target_values.squeeze(0)
-        target_values = reward_batch + (self.gamma * target_values)
+        q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
+        target_values = reward_batch + self.target_network(next_state_batch).max(1)[0].squeeze(
+                0) * self.gamma * (1 - terminal_batch)
 
         loss = self.loss_function(q_values, target_values)
         self.optimiser.zero_grad()
@@ -217,39 +235,52 @@ class Agent_DQN(Agent):
         """
         ###########################
         # YOUR IMPLEMENTATION HERE #
-        mode = 'random'
         for episode in range(self.episodes):
             state = self.env.reset()
+            state = torch.reshape(tensor(state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1, 2).to(
+                self.device)
             done = False
             episode_reward = []
             episode_loss = []
+
+            # save network
+            if self.step % self.model_save_interval == 0:
+                save_path = self.model_save_path + '/' + self.run_name + '_' + str(self.step) + '.pt'
+                torch.save(self.q_network.state_dict(), save_path)
+                print('Successfully saved: ' + save_path)
+
             while not done:
-                self.step += 1
-                action = self.make_action(state)
+                # update target network
+
+                if self.step % self.network_update_interval == 0:
+                    print('Updating target network')
+                    self.target_network.load_state_dict(self.q_network.state_dict())
+
+                self.epsilon = max(self.final_epsilon, self.initial_epsilon - self.epsilon_step * self.step)
+                if self.epsilon == self.final_epsilon:
+                    self.mode = 'Exploit'
+
+                action, q = self.make_action(state, test=False)
                 next_state, reward, done, _ = self.env.step(action)
+
+                next_state = torch.reshape(tensor(next_state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1,
+                                                                                                            2).to(
+                    self.device)
+
+                self.replay_memory.append(
+                        (state, torch.tensor([int(action)]), torch.tensor([reward], device=self.device), next_state,
+                         torch.tensor([done], dtype=torch.float32)))
                 episode_reward.append(reward)
-                self.replay_memory.append((np.rollaxis(state, 2), action, reward, np.rollaxis(next_state, 2), done))
 
-                if self.step > self.replay_size:
-
-                    mode = 'explore' if self.step <= self.replay_size + self.steps_to_explore else 'exploit'
-
-                    # train network
-                    if self.step % self.network_train_interval == 0:
-                        loss = self.optimize_network()
-                        episode_loss.append(loss)
-
-                    # save network
-                    if self.step % self.model_save_interval == 0:
-                        save_path = self.model_save_path + '/' + self.run_name + '_' + str(self.step) + '.pt'
-                        torch.save(self.q_network.state_dict(), save_path)
-                        print('Successfully saved: ' + save_path)
-
-                    # update target network
-                    if self.step % self.network_update_interval == 0:
-                        self.target_network.load_state_dict(self.q_network.state_dict())
+                self.step += 1
 
                 state = next_state
+
+                # train network
+                if self.step % self.network_train_interval == 0:
+                    loss = self.optimize_network()
+                    episode_loss.append(loss)
+
                 if done:
                     # print(
                     #         f'Episode:{episode} | Steps:{self.step} | Reward:{sum(episode_reward)} | Loss: {np.mean(episode_loss)} | Mode: {mode}')
@@ -257,12 +288,15 @@ class Agent_DQN(Agent):
                     #         f'Episode:{episode} | Steps:{self.step} | Reward:{sum(episode_reward)} | Loss: {np.mean(episode_loss)} | Mode: {mode}',
                     #         file=self.log_file)
 
+                    print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
+                          sum(episode_reward),
+                          ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
+                          np.mean(episode_loss), ' | Mode: ', self.mode)
                     print('Episode:', episode, ' | Steps:', self.step, ' | Reward: ', sum(episode_reward), ' | Loss: ',
-                          np.mean(episode_loss), ' | Mode: ', mode)
-                    print('Episode:', episode, ' | Steps:', self.step, ' | Reward: ', sum(episode_reward), ' | Loss: ',
-                          np.mean(episode_loss), ' | Mode: ', mode, file=self.log_file)
+                          np.mean(episode_loss), ' | Mode: ', self.mode, file=self.log_file)
                     self.log_summary(episode, episode_loss, episode_reward)
+                    self.last_n_rewards.append(sum(episode_reward))
                     episode_reward.clear()
                     episode_loss.clear()
 
-        ###########################
+                ###########################

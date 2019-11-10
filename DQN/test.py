@@ -24,12 +24,6 @@ def parse():
     return args
 
 
-def norm_state(state):
-    state_min = np.min(state)
-    state_max = np.max(state)
-    return (state - state_min) / (state_max - state_min)
-
-
 def test(agent, env, total_episodes=30):
     rewards = []
     env.seed(seed)
@@ -43,8 +37,7 @@ def test(agent, env, total_episodes=30):
 
         # playing one game
         while (not done):
-            state = np.rollaxis(state, 2)
-            # state = norm_state(state)
+            # state = np.rollaxis(state, 2)
             action = agent.make_action(state, test=True)
             state, reward, done, info = env.step(action)
             episode_reward += reward

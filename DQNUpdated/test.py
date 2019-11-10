@@ -7,7 +7,7 @@ DO NOT revise this file
 
 import argparse
 import numpy as np
-from environment import Environment
+from DQNUpdated.environment import Environment
 
 seed = 11037
 
@@ -15,7 +15,7 @@ def parse():
     parser = argparse.ArgumentParser(description="DS595/CS525 RL Project 3")
     parser.add_argument('--test_dqn', action='store_true', help='whether test DQN')
     try:
-        from argument import add_arguments
+        from DQNUpdated.argument import add_arguments
         parser = add_arguments(parser)
     except:
         pass
@@ -46,7 +46,7 @@ def test(agent, env, total_episodes=30):
 def run(args):
     if args.test_dqn:
         env = Environment('BreakoutNoFrameskip-v4', args, atari_wrapper=True, test=True)
-        from agent_dqn import Agent_DQN
+        from DQN.agent_dqn import Agent_DQN
         agent = Agent_DQN(env, args)
         test(agent, env, total_episodes=100)
 

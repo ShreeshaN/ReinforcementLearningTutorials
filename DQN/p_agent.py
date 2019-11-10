@@ -70,16 +70,11 @@ class MetaData(object):
         :param args: args
         """
         self.data = self.transition(*args)
-        if self.data.episode % self.args.disp_freq == 0:
-            # print(
-            #         f"E: {self.data.episode} |  Step: {self.data.step} | T: {self.data.time:.2f} | ET: {self.data.time_elapsed:.2f}"
-            #         f" | Len: {self.data.ep_len} | EPS: {self.data.epsilon:.5f} | R: {self.data.reward} | AR: {self.data.avg_reward:.3f}"
-            #         f" | MAQ:{self.data.max_avg_q:.2f} | L: {self.data.loss:.2f} | AL: {self.data.avg_loss:.4f} | Mode: {self.data.mode}")
-
-            print("E: ", self.data.episode, " |  Step: ", self.data.step, "| Len: ", self.data.ep_len, " | EPS: ",
-                  self.data.epsilon, " | R: ",
-                  self.data.reward, " | AR: ", self.data.avg_reward, " | MAQ:", self.data.max_avg_q, " | L: ",
-                  self.data.loss, " | AL: ", self.data.avg_loss, " | Mode: ", self.data.mode)
+        # if self.data.episode % self.args.disp_freq == 0:
+        print("E: ", self.data.episode, " |  Step: ", self.data.step, "| Len: ", self.data.ep_len, " | EPS: ",
+              self.data.epsilon, " | R: ",
+              self.data.reward, " | AR: ", self.data.avg_reward, " | MAQ:", self.data.max_avg_q, " | L: ",
+              self.data.loss, " | AL: ", self.data.avg_loss, " | Mode: ", self.data.mode)
         self.fp.write(self.data._asdict().values().__str__().replace('odict_values([', '').replace('])', '' + '\n'))
 
     def load(self, f):
@@ -156,13 +151,15 @@ class Agent_DQN(Agent):
         self.policy_net.train()
         self.target_net.eval()
         self.target_net.load_state_dict(self.policy_net.state_dict())
-
+        print(self.policy_net.state_dict().keys())
+        print(np.sum(self.policy_net.state_dict()['conv1.weight'].detach().cpu().numpy()))
         if args.test_dqn:
             # you can load your model here
             ###########################
             # YOUR IMPLEMENTATION HERE #
             print('loading trained model')
             self.load_model()
+        print(np.sum(self.policy_net.state_dict()['conv1.weight'].detach().cpu().numpy()))
 
     def init_game_setting(self):
         """
@@ -302,8 +299,7 @@ class Agent_DQN(Agent):
         :return:
         """
         print("Restoring model from ", self.args.load_dir)
-        self.policy_net = torch.load(self.args.load_dir,
-                                     map_location=self.device).to(self.device)
+        self.policy_net = torch.load(self.args.load_dir, map_location=self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         if not self.args.test_dqn:
             self.meta.load(open(self.args.load_dir.replace('.th', '.meta')))
