@@ -63,16 +63,19 @@ def test(agent, env, total_episodes=30):
         state = env.reset()
         done = False
         episode_reward = 0.0
+        count = 0
 
         # playing one game
         while not done:
+            count += 1
             state = tensor(np.rollaxis(state, 2)).unsqueeze(0)
             action = agent.make_action(state, test=True)
             state, reward, done, info = env.step(action)
             episode_reward += reward
-
+            if count > 5000:
+                break
         rewards.append(episode_reward)
-        print('Episode', i, '. . . Reward', episode_reward)
+        print('Episode', i, '. . . Reward', episode_reward, '. . . Avg Reward', np.mean(rewards), '. . . States', count)
     print('Run %d episodes' % (total_episodes))
     print('Mean:', np.mean(rewards))
 
