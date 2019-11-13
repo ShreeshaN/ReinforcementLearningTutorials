@@ -228,13 +228,13 @@ class Agent_DQN(Agent):
             episode_reward = []
             episode_loss = []
 
-            while not done:
+            # save network
+            if episode % self.model_save_interval == 0:
+                save_path = self.model_save_path + '/' + self.run_name + '_' + str(episode) + '.pt'
+                torch.save(self.q_network.state_dict(), save_path)
+                print('Successfully saved: ' + save_path)
 
-                # save network
-                if episode % self.model_save_interval == 0:
-                    save_path = self.model_save_path + '/' + self.run_name + '_' + str(self.step) + '.pt'
-                    torch.save(self.q_network.state_dict(), save_path)
-                    print('Successfully saved: ' + save_path)
+            while not done:
 
                 # update target network
                 if self.step % self.network_update_interval == 0:
