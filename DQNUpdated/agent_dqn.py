@@ -77,6 +77,7 @@ class Agent_DQN(Agent):
         self.network_update_interval = args.network_update_interval
         self.network_train_interval = args.network_train_interval
         self.last_n_rewards = deque([], self.metrics_capture_window)
+        self.start_to_learn = args.start_to_learn
 
         self.batch_size = args.batch_size
         self.q_network = DQN().to(self.device)
@@ -210,6 +211,7 @@ class Agent_DQN(Agent):
     def log_summary(self, global_step, episode_loss, episode_reward):
         self.writer.add_scalar('Train/Episode Reward', sum(episode_reward), global_step)
         self.writer.add_scalar('Train/Average Loss', np.mean(episode_loss), global_step)
+        self.writer.add_scalar('Train/Average reward(100)', np.mean(self.last_n_rewards), global_step)
         self.writer.flush()
 
     def train(self):
@@ -229,7 +231,7 @@ class Agent_DQN(Agent):
             while not done:
 
                 # save network
-                if self.step % self.model_save_interval == 0:
+                if episode % self.model_save_interval == 0:
                     save_path = self.model_save_path + '/' + self.run_name + '_' + str(self.step) + '.pt'
                     torch.save(self.q_network.state_dict(), save_path)
                     print('Successfully saved: ' + save_path)
@@ -259,7 +261,7 @@ class Agent_DQN(Agent):
                 state = next_state
 
                 # train network
-                if self.step % self.network_train_interval == 0:
+                if self.step >= self.start_to_learn and self.step % self.network_train_interval == 0:
                     loss = self.optimize_network()
                     episode_loss.append(loss)
 
@@ -274,7 +276,9 @@ class Agent_DQN(Agent):
                           sum(episode_reward),
                           ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
                           np.mean(episode_loss), ' | Mode: ', self.mode)
-                    print('Episode:', episode, ' | Steps:', self.step, ' | Reward: ', sum(episode_reward), ' | Loss: ',
+                    print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
+                          sum(episode_reward),
+                          ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
                           np.mean(episode_loss), ' | Mode: ', self.mode, file=self.log_file)
                     self.log_summary(episode, episode_loss, episode_reward)
                     self.last_n_rewards.append(sum(episode_reward))
