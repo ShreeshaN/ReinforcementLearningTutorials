@@ -12,7 +12,7 @@ def parse():
     parser = argparse.ArgumentParser(description="runner")
     parser.add_argument('--env_name', default=None, help='environment name')
     parser.add_argument('--train_pg', action='store_true', help='whether train policy gradient')
-    parser.add_argument('--train_dqn', action='store_true', help='whether train DQN', default=True)
+    parser.add_argument('--train_dqn', action='store_true', help='whether train DQN')
     parser.add_argument('--test_pg', action='store_true', help='whether test policy gradient')
     parser.add_argument('--test_dqn', action='store_true', help='whether test DQN')
     parser.add_argument('--video_dir', default=None, help='output video directory')
