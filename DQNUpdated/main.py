@@ -2,6 +2,7 @@ import argparse
 from DQNUpdated.agent_dqn import Agent_DQN
 from DQNUpdated.environment import Environment
 import numpy as np
+from torch import tensor
 import torch
 
 seed = 11037
@@ -64,11 +65,13 @@ def test(agent, env, total_episodes=30):
 
         # playing one game
         while not done:
+            state = tensor(np.rollaxis(state, 2)).unsqueeze(0)
             action = agent.make_action(state, test=True)
             state, reward, done, info = env.step(action)
             episode_reward += reward
 
         rewards.append(episode_reward)
+        print('Episode', i, '. . . Reward', episode_reward)
     print('Run %d episodes' % (total_episodes))
     print('Mean:', np.mean(rewards))
 
