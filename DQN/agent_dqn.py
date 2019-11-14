@@ -2,10 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-# DOUBTS:
-# 1. Replay buffer is updated every step ?
-
-
 import random
 import numpy as np
 from collections import deque
