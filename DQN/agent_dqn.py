@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+
+# DOUBTS:
+# 1. Replay buffer is updated every step ?
+
+
 import random
 import numpy as np
 from collections import deque
@@ -7,16 +13,14 @@ import os
 import sys
 
 import torch
+from torch import nn, tensor
 import torch.nn.functional as F
 import torch.optim as optim
-from torch import tensor
 
 from DQN.agent import Agent
 from DQN.dqn_model import DQN
-from torch.autograd import Variable
-
-from DQN.utils import tensor
 from torch.utils.tensorboard import SummaryWriter
+from torch.autograd import Variable
 
 """
 you can import any package and define any extra function as you need
@@ -40,113 +44,68 @@ class Agent_DQN(Agent):
         """
 
         super(Agent_DQN, self).__init__(env)
+
         ###########################
         # YOUR IMPLEMENTATION HERE #
-        self.frame_width = args.frame_width
-        self.frame_height = args.frame_height
-        self.num_steps = args.num_steps
-        self.state_length = args.state_length
-        self.gamma = args.gamma
-        self.exploration_steps = args.exploration_steps
-        self.initial_epsilon = args.initial_epsilon
-        self.final_epsilon = args.final_epsilon
-        self.initial_replay_size = args.initial_replay_size
-        self.num_replay_memory = args.num_replay_memory
-        self.batch_size = args.batch_size
-        self.target_update_interval = args.target_update_interval
-        self.train_interval = args.train_interval
-        self.learning_rate = args.learning_rate
-        self.save_interval = args.save_interval
-        self.no_op_steps = args.no_op_steps
-        self.save_network_path = args.save_network_path
-        self.save_summary_path = args.save_summary_path
-        self.test_dqn_model_path = args.test_dqn_model_path
-        self.exp_name = args.exp_name
-        self.ddqn = args.ddqn
-        self.dueling = args.dueling
-        # self.test_path = args.test_path
+        self.run_name = args.run_name
+        self.model_save_path = args.model_save_path
+        self.model_save_interval = args.model_save_interval
+        self.log_path = args.log_path
+        self.tensorboard_summary_path = args.tensorboard_summary_path
         self.is_cuda_available = torch.cuda.is_available()
         self.device = torch.device("cuda" if self.is_cuda_available else "cpu")
-        self.log = args.logfile_path
+        self.model_test_path = args.model_test_path
+        self.step = 0
 
-        # environment setting
+        # Environment and network parameters
         self.env = env
         self.num_actions = env.action_space.n
-
+        self.action_list = np.arange(self.num_actions)
+        self.metrics_capture_window = args.metrics_capture_window
+        self.replay_size = args.replay_size
+        self.replay_memory = []
+        self.position = 0
+        self.total_num_steps = args.total_num_steps
+        self.episodes = args.episodes
+        self.gamma = args.gamma
+        self.learning_rate = args.learning_rate
+        self.initial_epsilon = args.initial_epsilon
+        self.final_epsilon = args.final_epsilon
         self.epsilon = self.initial_epsilon
-        self.epsilon_step = (self.initial_epsilon - self.final_epsilon) / self.exploration_steps
-        self.t = 0
+        self.steps_to_explore = args.steps_to_explore
+        self.epsilon_step = (self.initial_epsilon - self.final_epsilon) / self.steps_to_explore
+        self.network_update_interval = args.network_update_interval
+        self.network_train_interval = args.network_train_interval
+        self.last_n_rewards = deque([], self.metrics_capture_window)
+        self.start_to_learn = args.start_to_learn
 
-        # for summary & checkpoint
-        self.total_reward = 0.0
-        self.total_q_max = 0.0
-        self.total_loss = 0.0
-        self.duration = 0
-        self.episode = 0
-        self.last_100_reward = deque()
-
-        # Input that is not used when fowarding for Q-value
-        # or loss calculation on first output of model
-        # self.dummy_input = np.zeros((1, self.num_actions))
-        # self.dummy_batch = np.zeros((self.batch_size, self.num_actions))
-
-        # Create replay memory
-        self.replay_memory = deque()
-
-        # Create q network
+        self.batch_size = args.batch_size
         self.q_network = DQN().to(self.device)
-        # Create target network
         self.target_network = DQN().to(self.device)
-        self.optimizer = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
-
+        self.loss_function = F.smooth_l1_loss
+        self.optimiser = optim.Adam(self.q_network.parameters(), lr=args.learning_rate)
+        self.probability_list = np.zeros(env.action_space.n, np.float32)
         self.q_network.train()
         self.target_network.eval()
+        self.mode = "Random"
 
-        if not os.path.exists(self.save_network_path):
-            os.makedirs(self.save_network_path)
-        if not os.path.exists(self.save_summary_path):
-            os.makedirs(self.save_summary_path)
+        # create necessary paths
+        self.create_dirs()
 
-        # load model for testing, train a new one otherwise
         if args.test_dqn:
-            self.q_network.load_state_dict(torch.load(self.test_dqn_model_path))
-        else:
-            self.log = open(self.save_summary_path + self.exp_name + '.log', 'w')
+            print('loading trained model')
+            self.q_network.load_state_dict(torch.load(self.model_test_path))
+
+        self.log_file = open(self.model_save_path + '/' + self.run_name + '.log', 'w') if not args.test_dqn else None
 
         # Set target_network weight
         self.target_network.load_state_dict(self.q_network.state_dict())
 
-        if args.test_dqn:
-            # you can load your model here
-            print('loading trained model')
-            ###########################
-            # YOUR IMPLEMENTATION HERE #
+        self.writer = SummaryWriter(args.tensorboard_summary_path)
 
-        self.writer = SummaryWriter(args.tensorboard_summary)
-
-    def init_game_setting(self):
-        """
-        Testing function will call this function at the begining of new game
-        Put anything you want to initialize if necessary.
-        If no parameters need to be initialized, you can leave it as blank.
-        """
-        ###########################
-        # YOUR IMPLEMENTATION HERE #
-
-        ###########################
-        pass
-
-    def get_prediction(self, state):
-        if not isinstance(state, torch.Tensor):
-            state = torch.Tensor(state)
-        if state.size() == (4, 84, 84):
-            return self.q_network(state)
-        elif state.size() == (84, 84, 4):
-            # making state channel first
-            state = state.permute(2, 0, 1)
-            return self.q_network(state)
-        else:
-            raise Exception("Expecting state with (channel * X * Y) or (X * Y * channel). But recieved ", state.size())
+    def create_dirs(self):
+        paths = [self.model_save_path, self.tensorboard_summary_path]
+        [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
     def make_action(self, observation, test=True):
         """
@@ -158,200 +117,121 @@ class Agent_DQN(Agent):
             action: int
                 the predicted action from trained model
         """
-        ###########################
-        # YOUR IMPLEMENTATION HERE #
+        with torch.no_grad():
+            if test:
+                action = torch.argmax(self.q_network(tensor(observation).float()).detach())
+                return action.item()
+            # Fill up probability list equal for all actions
+            self.probability_list.fill(self.epsilon / self.num_actions)
+            # Fetch q from the model prediction
+            q, argq = self.q_network(tensor(observation).float()).data.cpu().max(1)
+            # Increase the probability for the selected best action
+            self.probability_list[argq[0].item()] += 1 - self.epsilon
+            # Use random choice to decide between a random action / best action
+            action = torch.tensor([np.random.choice(self.action_list, p=self.probability_list)])
+        return action.item(), q
 
-        if not test:
-            if self.epsilon >= random.random() or self.t < self.initial_replay_size:
-                action = random.randrange(self.num_actions)
-            else:
-                action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
-
-            # Anneal epsilon linearly over time
-            if self.epsilon > self.final_epsilon and self.t >= self.initial_replay_size:
-                self.epsilon -= self.epsilon_step
-        else:
-            if 0.005 >= random.random():
-                action = random.randrange(self.num_actions)
-            else:
-                action = torch.argmax(self.q_network(tensor(observation).unsqueeze(0).float()).detach()).item()
-        return action
-
-    def push(self, state, action, reward, next_state, terminal):
-        """ You can add additional arguments as you need. 
+    def push(self, transition_tuple):
+        """ You can add additional arguments as you need.
         Push new data to buffer and remove the old one if the buffer is full.
-        
+
         Hints:
         -----
             you can consider deque(maxlen = 10000) list
         """
-        ###########################
-        # YOUR IMPLEMENTATION HERE #
-        self.replay_memory.append((state, action, reward, next_state, terminal))
-        ###########################
+        if len(self.replay_memory) < self.replay_size:
+            self.replay_memory.append(None)
+        self.replay_memory[self.position] = transition_tuple
+        self.position = (self.position + 1) % self.replay_size
 
-    def replay_buffer(self, state, action, reward, next_state, terminal):
-        """ You can add additional arguments as you need.
-        Select batch from buffer.
-        """
-        ###########################
-        # YOUR IMPLEMENTATION HERE #
+    def optimize_network(self):
 
-        # Store transition in replay memory
-        if len(self.replay_memory) > self.num_replay_memory:
-            self.replay_memory.popleft()
-        self.push(state, action, reward, next_state, terminal)
-
-        ###########################
-
-    def log_summary(self, global_step):
-        self.writer.add_scalar('Train/Average Reward', np.mean(self.last_100_reward), global_step) if len(
-                self.last_100_reward) > 0 else None
-        self.writer.add_scalar('Train/Average Q', self.total_q_max / float(self.duration),
-                               global_step) if self.duration > 0 else None
-        self.writer.add_scalar('Train/Average Loss',
-                               self.total_loss / (float(self.duration) / float(self.train_interval)),
-                               global_step) if self.duration > 0 and self.train_interval > 0 else None
-
-        self.writer.flush()
-
-    def train_network(self):
-        state_batch = []
-        action_batch = []
-        reward_batch = []
-        next_state_batch = []
-        terminal_batch = []
+        if len(self.replay_memory) < self.replay_size:
+            return 0
 
         # Sample random minibatch of transition from replay memory
         minibatch = random.sample(self.replay_memory, self.batch_size)
-        for data in minibatch:
-            state_batch.append(data[0])
-            action_batch.append(data[1])
-            reward_batch.append(data[2])
-            next_state_batch.append(data[3])
-            terminal_batch.append(data[4])
+        state_batch, action_batch, reward_batch, next_state_batch, terminal_batch = map(
+                lambda x: Variable(torch.cat(x, 0)), zip(*minibatch))
 
-        # Convert True to 1, False to 0
-        terminal_batch = np.array(terminal_batch) + 0
+        q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
+        target_values = self.target_network(next_state_batch).max(1)[0].squeeze(
+                0) * self.gamma * (1 - terminal_batch)
 
-        # Q value from target network
-        target_q_values_batch = self.target_network(tensor(next_state_batch).float())
-        # y_batch = tensor(reward_batch) + tensor(1 - terminal_batch) * self.gamma * torch.max(target_q_values_batch,
-        #                                                                                      dim=-1).values
-
-        # Loss
-        output = self.q_network(tensor(state_batch).float())
-        output = output[[x for x in range(self.batch_size)], [action_batch]].squeeze(0)
-        # current_q_values = self.q_network(current_states).gather(1, actions.unsqueeze(1).long()).squeeze(1)
-        #
-        # future_q_values = self.target_network(future_states).detach()
-        # if self.ddqn:
-        #     best_actions = torch.argmax(self.q_network(future_states), dim=-1)
-        #     future_q_values = future_q_values.gather(1, tensor(best_actions).unsqueeze(1)).squeeze(1)
-        # else:
-        #     future_q_values = future_q_values.max(1)[0]
-        #
-        # future_q_values = future_q_values * (1 - terminals)
-        # target_q_values = tensor(rewards) + (self.gamma * future_q_values)
-        # loss = self.loss_fn(current_q_values, target_q_values)
-
-        if self.ddqn:
-            best_actions = torch.argmax(self.q_network(tensor(next_state_batch).float()), dim=-1)
-            target_q_values_batch = target_q_values_batch.gather(1, tensor(best_actions).unsqueeze(1)).squeeze(1)
-        else:
-            target_q_values_batch = torch.max(target_q_values_batch, dim=-1).values
-
-        y_batch = tensor(reward_batch) + (tensor(1 - terminal_batch) * self.gamma * target_q_values_batch)
-
-        loss = F.smooth_l1_loss(output, y_batch)
-
-        self.optimizer.zero_grad()
+        loss = self.loss_function(q_values, reward_batch + target_values)
+        self.optimiser.zero_grad()
         loss.backward()
         for param in self.q_network.parameters():
             param.grad.data.clamp_(-1, 1)
-        self.optimizer.step()
-        self.total_loss += loss
+        self.optimiser.step()
+        return loss.cpu().detach().numpy()
+
+    def log_summary(self, global_step, episode_loss, episode_reward):
+        self.writer.add_scalar('Train/Episode Reward', sum(episode_reward), global_step)
+        self.writer.add_scalar('Train/Average Loss', np.mean(episode_loss), global_step)
+        self.writer.add_scalar('Train/Average reward(100)', np.mean(self.last_n_rewards), global_step)
+        self.writer.flush()
 
     def train(self):
         """
         Implement your training algorithm here
         """
-        ###########################
-        # YOUR IMPLEMENTATION HERE #
-        while self.t <= self.num_steps:
-            terminal = False
-            observation = self.env.reset()
-            observation_channel_first = np.rollaxis(observation, 2)
-            for _ in range(random.randint(1, self.no_op_steps)):
-                observation, _, _, _ = self.env.step(0)  # Do nothing
-            while not terminal:
-                action = self.make_action(observation_channel_first, test=False)
-                new_observation, reward, terminal, _ = self.env.step(action)
-                new_observation_channel_first = np.rollaxis(new_observation, 2)
-                self.run(observation_channel_first, action, reward, terminal, new_observation_channel_first)
-                observation_channel_first = new_observation_channel_first
+        for episode in range(self.episodes):
+            state = self.env.reset()
+            state = torch.reshape(tensor(state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1, 2).to(
+                    self.device)
+            done = False
+            episode_reward = []
+            episode_loss = []
 
-        ###########################
-
-    def run(self, state, action, reward, terminal, next_state):
-
-        # Store transition in replay memory
-        self.replay_buffer(state, action, reward, next_state, terminal)
-
-        if self.t >= self.initial_replay_size:
-            # Train network
-            if self.t % self.train_interval == 0:
-                self.train_network()
-
-            # Update target network
-            if self.t % self.target_update_interval == 0:
-                self.target_network.load_state_dict(self.q_network.state_dict())
-
-            # Save network
-            if self.t % self.save_interval == 0:
-                save_path = self.save_network_path + '/' + self.exp_name + '_' + str(self.t) + '.pt'
+            # save network
+            if episode % self.model_save_interval == 0:
+                save_path = self.model_save_path + '/' + self.run_name + '_' + str(episode) + '.pt'
                 torch.save(self.q_network.state_dict(), save_path)
-                # self.q_network.save_model(save_path)
                 print('Successfully saved: ' + save_path)
 
-        self.total_reward += reward
-        self.total_q_max += torch.max(self.q_network(tensor(state).unsqueeze(0).float()))
-        self.duration += 1
+            while not done:
 
-        if terminal:
-            # Observe the mean of rewards on last 100 episode
-            self.last_100_reward.append(self.total_reward)
-            if len(self.last_100_reward) > 100:
-                self.last_100_reward.popleft()
+                # update target network
+                if self.step % self.network_update_interval == 0:
+                    print('Updating target network')
+                    self.target_network.load_state_dict(self.q_network.state_dict())
 
-            # Log message
-            if self.t < self.initial_replay_size:
-                mode = 'random'
-            elif self.initial_replay_size <= self.t < self.initial_replay_size + self.exploration_steps:
-                mode = 'explore'
-            else:
-                mode = 'exploit'
-            self.episode = self.episode + 1
-            print(
-                    'EPISODE: {0:2d} | TIMESTEP: {1:2d} | DURATION: {2:2d} | EPSILON: {3:.5f} | REWARD: {4:.3f} | AVG_REWARD: {5:.3f} | AVG_MAX_Q: {6:.4f} | AVG_LOSS: {7:.5f} | MODE: {8}'.format(
-                            self.episode, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
-                            np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
-                                                           self.total_loss / (float(self.duration) / float(
-                                                                   self.train_interval)), mode))
-            print(
-                    'EPISODE: {0:2d} | TIMESTEP: {1:2d} | DURATION: {2:2d} | EPSILON: {3:.5f} | REWARD: {4:.3f} | AVG_REWARD: {5:.3f} | AVG_MAX_Q: {6:.4f} | AVG_LOSS: {7:.5f} | MODE: {8}'.format(
-                            self.episode, self.t, self.duration, self.epsilon, sum(self.last_100_reward),
-                            np.mean(self.last_100_reward), self.total_q_max / float(self.duration),
-                                                           self.total_loss / (float(self.duration) / float(
-                                                                   self.train_interval)), mode),
-                    file=self.log)
-            self.log_summary(global_step=self.episode)
+                if self.step > len(self.replay_memory):
+                    self.epsilon = max(self.final_epsilon, self.initial_epsilon - self.epsilon_step * self.step)
+                    if self.epsilon > self.final_epsilon:
+                        self.mode = 'Explore'
+                    else:
+                        self.mode = 'Exploit'
 
-            # Init for new game
-            self.total_reward = 0
-            self.total_q_max = 0
-            self.total_loss = 0
-            self.duration = 0
-            self.episode += 1
+                action, q = self.make_action(state, test=False)
+                next_state, reward, done, _ = self.env.step(action)
 
-        self.t += 1
+                next_state = torch.reshape(tensor(next_state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1,
+                                                                                                            2).to(
+                        self.device)
+                self.push((state, torch.tensor([int(action)]), torch.tensor([reward], device=self.device), next_state,
+                           torch.tensor([done], dtype=torch.float32)))
+                episode_reward.append(reward)
+                self.step += 1
+                state = next_state
+
+                # train network
+                if self.step >= self.start_to_learn and self.step % self.network_train_interval == 0:
+                    loss = self.optimize_network()
+                    episode_loss.append(loss)
+
+                if done:
+
+                    print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
+                          sum(episode_reward),
+                          ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
+                          np.mean(episode_loss), ' | Mode: ', self.mode)
+                    print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
+                          sum(episode_reward),
+                          ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
+                          np.mean(episode_loss), ' | Mode: ', self.mode, file=self.log_file)
+                    self.log_summary(episode, episode_loss, episode_reward)
+                    self.last_n_rewards.append(sum(episode_reward))
+                    episode_reward.clear()
+                    episode_loss.clear()

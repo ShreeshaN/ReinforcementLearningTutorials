@@ -4,12 +4,11 @@
 DO NOT revise this file
 
 """
-from DQN.environment import Environment
+
 
 class Agent(object):
     def __init__(self, env):
         self.env = env
-
 
     def make_action(self, observation, test=True):
         """
@@ -26,7 +25,6 @@ class Agent(object):
                 the predicted action from trained model
         """
         raise NotImplementedError("Subclasses should implement this!")
-
 
     def init_game_setting(self):
         """
