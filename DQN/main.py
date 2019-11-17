@@ -4,6 +4,7 @@ from DQN.environment import Environment
 import numpy as np
 from torch import tensor
 import torch
+import time
 
 seed = 11037
 
@@ -24,7 +25,7 @@ def parse():
     parser.add_argument('--model_save_interval', type=int, default=500, help='')
     parser.add_argument('--log_path', type=str, default='train_log.out', help='')
     parser.add_argument('--tensorboard_summary_path', type=str, default='tensorboard_summary', help='')
-    parser.add_argument('--model_test_path', type=str, default='trained_models/dqn_model_5000.pt', help='')
+    parser.add_argument('--model_test_path', type=str, default='/Users/badgod/Downloads/dqn_model_23500.pt', help='')
     parser.add_argument('--metrics_capture_window', type=int, default=100, help='')
     parser.add_argument('--replay_size', type=int, default=10000, help='')
     parser.add_argument('--start_to_learn', type=int, default=5000, help='')
@@ -37,6 +38,7 @@ def parse():
     parser.add_argument('--network_update_interval', type=int, default=5000, help='')
     parser.add_argument('--episodes', type=int, default=50000000, help='')
     parser.add_argument('--network_train_interval', type=int, default=10, help='')
+    parser.add_argument('--ddqn', type=bool, default=True, help='')
     torch.set_default_tensor_type('torch.cuda.FloatTensor' if torch.cuda.is_available() else 'torch.FloatTensor')
 
     args = parser.parse_args()
@@ -56,28 +58,57 @@ def run(args):
         test(agent, env, total_episodes=100)
 
 
+# def test(agent, env, total_episodes=30):
+#     rewards = []
+#     env.seed(seed)
+#     for i in range(total_episodes):
+#         state = env.reset()
+#         done = False
+#         episode_reward = 0.0
+#         count = 0
+#
+#         # playing one game
+#         while not done:
+#             count += 1
+#             state = tensor(np.rollaxis(state, 2)).unsqueeze(0)
+#             action = agent.make_action(state, test=True)
+#             state, reward, done, info = env.step(action)
+#             episode_reward += reward
+#             if count > 5000:
+#                 break
+#         rewards.append(episode_reward)
+#         print('Episode', i, '. . . Reward', episode_reward, '. . . Avg Reward', np.mean(rewards), '. . . States', count)
+#     print('Run %d episodes' % (total_episodes))
+#     print('Mean:', np.mean(rewards))
 def test(agent, env, total_episodes=30):
     rewards = []
     env.seed(seed)
+    start_time = time.time()
     for i in range(total_episodes):
+        count = 0
         state = env.reset()
+
+        agent.init_game_setting()
         done = False
         episode_reward = 0.0
-        count = 0
 
         # playing one game
+        # frames = [state]
         while not done:
             count += 1
+            # env.env.render()
             state = tensor(np.rollaxis(state, 2)).unsqueeze(0)
-            action = agent.make_action(state, test=True)
+            action = agent.make_action(state, state_count=count, test=True, )
             state, reward, done, info = env.step(action)
             episode_reward += reward
-            if count > 5000:
-                break
+            # frames.append(state)
         rewards.append(episode_reward)
-        print('Episode', i, '. . . Reward', episode_reward, '. . . Avg Reward', np.mean(rewards), '. . . States', count)
+        print('Episode', i, '. . . Reward', episode_reward, '. . . Avg Reward', np.mean(rewards), '. . . States',
+              count)
     print('Run %d episodes' % (total_episodes))
     print('Mean:', np.mean(rewards))
+    print('rewards', rewards)
+    print('running time', time.time() - start_time)
 
 
 if __name__ == '__main__':

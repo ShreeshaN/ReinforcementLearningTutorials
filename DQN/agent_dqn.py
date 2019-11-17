@@ -74,6 +74,7 @@ class Agent_DQN(Agent):
         self.network_train_interval = args.network_train_interval
         self.last_n_rewards = deque([], self.metrics_capture_window)
         self.start_to_learn = args.start_to_learn
+        self.ddqn = args.ddqn
 
         self.batch_size = args.batch_size
         self.q_network = DQN().to(self.device)
@@ -84,13 +85,14 @@ class Agent_DQN(Agent):
         self.q_network.train()
         self.target_network.eval()
         self.mode = "Random"
+        self.state_counter_while_testing = 0
 
         # create necessary paths
         self.create_dirs()
 
         if args.test_dqn:
             print('loading trained model')
-            self.q_network.load_state_dict(torch.load(self.model_test_path))
+            self.q_network.load_state_dict(torch.load(self.model_test_path, map_location=self.device))
 
         self.log_file = open(self.model_save_path + '/' + self.run_name + '.log', 'w') if not args.test_dqn else None
 
@@ -103,7 +105,7 @@ class Agent_DQN(Agent):
         paths = [self.model_save_path, self.tensorboard_summary_path]
         [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
-    def make_action(self, observation, test=True):
+    def make_action(self, observation, state_count, test=True):
         """
         Return predicted action of your agent
         Input:
@@ -113,10 +115,14 @@ class Agent_DQN(Agent):
             action: int
                 the predicted action from trained model
         """
+        self.init_game_setting()
         with torch.no_grad():
             if test:
-                action = torch.argmax(self.q_network(tensor(observation).float()).detach())
-                return action.item()
+                if state_count < 5000:
+                    action = torch.argmax(self.q_network(tensor(observation).float()).detach())
+                    return action.item()
+                else:
+                    return np.random.choice(range(self.num_actions))
             # Fill up probability list equal for all actions
             self.probability_list.fill(self.epsilon / self.num_actions)
             # Fetch q from the model prediction
@@ -126,6 +132,15 @@ class Agent_DQN(Agent):
             # Use random choice to decide between a random action / best action
             action = torch.tensor([np.random.choice(self.action_list, p=self.probability_list)])
         return action.item(), q
+
+    def init_game_setting(self):
+        """
+
+        Testing function will call this function at the beginning of new game
+        Put anything you want to initialize if necessary
+
+        """
+        self.state_counter_while_testing += 1
 
     def push(self, transition_tuple):
         """ You can add additional arguments as you need.
@@ -151,8 +166,14 @@ class Agent_DQN(Agent):
                 lambda x: Variable(torch.cat(x, 0)), zip(*minibatch))
 
         q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
-        target_values = self.target_network(next_state_batch).max(1)[0].squeeze(
-                0) * self.gamma * (1 - terminal_batch)
+        target_values = self.target_network(next_state_batch)
+        if self.ddqn:
+            best_actions = torch.argmax(self.q_network(next_state_batch), dim=-1)
+            target_values = target_values.gather(1, tensor(best_actions).unsqueeze(1)).squeeze(1)
+        else:
+            target_values = target_values.max(1)[0].squeeze(0)
+
+        target_values = target_values * self.gamma * (1 - terminal_batch)
 
         loss = self.loss_function(q_values, reward_batch + target_values)
         self.optimiser.zero_grad()
@@ -200,7 +221,7 @@ class Agent_DQN(Agent):
                     else:
                         self.mode = 'Exploit'
 
-                action, q = self.make_action(state, test=False)
+                action, q = self.make_action(state, 0, test=False)
                 next_state, reward, done, _ = self.env.step(action)
 
                 next_state = torch.reshape(tensor(next_state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1,
@@ -218,7 +239,6 @@ class Agent_DQN(Agent):
                     episode_loss.append(loss)
 
                 if done:
-
                     print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
                           sum(episode_reward),
                           ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',

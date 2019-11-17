@@ -10,7 +10,7 @@ class Agent(object):
     def __init__(self, env):
         self.env = env
 
-    def make_action(self, observation, test=True):
+    def make_action(self, observation, state, test=True):
         """
         Return predicted action of your agent
         This function must exist in agent
