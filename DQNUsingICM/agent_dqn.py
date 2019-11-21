@@ -270,11 +270,15 @@ class Agent_DQN(Agent):
                     print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
                           sum(episode_reward),
                           ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
-                          np.mean(episode_loss), ' | Mode: ', self.mode)
+                          np.mean(episode_loss), ' | Intrinsic Reward: ', sum(self.intrinsic_episode_reward),
+                          'Avg Intrinsic Reward: ', np.mean(self.last_n_intrinsic_rewards),
+                          ' | Mode: ', self.mode)
                     print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
                           sum(episode_reward),
                           ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
-                          np.mean(episode_loss), ' | Mode: ', self.mode, file=self.log_file)
+                          np.mean(episode_loss), ' | Intrinsic Reward: ', sum(self.intrinsic_episode_reward),
+                          'Avg Intrinsic Reward: ', np.mean(self.last_n_intrinsic_rewards),
+                          ' | Mode: ', self.mode, file=self.log_file)
                     self.log_summary(episode, episode_loss, episode_reward)
                     self.last_n_rewards.append(sum(episode_reward))
                     self.last_n_intrinsic_rewards.append(sum(self.intrinsic_episode_reward))
