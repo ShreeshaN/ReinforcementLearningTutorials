@@ -25,4 +25,5 @@ def tensor(x):
 
 
 def generate_onehot(index, num_actions):
-    return [0 for x in range(num_actions)]
+    return [1 if i == index else 0 for i, x in enumerate(range(num_actions))]
+

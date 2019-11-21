@@ -8,7 +8,6 @@ from functools import reduce
 from torch import tensor
 
 
-
 class DQN(nn.Module):
     """Initialize a deep Q-learning network
     
@@ -47,6 +46,9 @@ class DQN(nn.Module):
 
 
 # class BasicConvNet(nn.Module):
+class Flatten(nn.Module):
+    def forward(self, input):
+        return input.view(input.size(0), -1)
 
 
 class ICM(nn.Module):
@@ -63,6 +65,7 @@ class ICM(nn.Module):
                 nn.LeakyReLU(),
                 nn.Conv2d(64, 64, 3, 1),
                 nn.LeakyReLU(),
+                Flatten(),
                 nn.Linear(7 * 7 * 64, 512),
         )
 
@@ -73,9 +76,9 @@ class ICM(nn.Module):
         )
 
         self.forward_model = nn.Sequential(
-                nn.Linear(512 + num_actions, 256),
+                nn.Linear(512 + num_actions, 512),
                 nn.LeakyReLU(),
-                nn.Linear(256, self.encoded_next_state_shape)
+                nn.Linear(512, 512)
         )
 
     def forward(self, state_batch, next_state_batch, onehot_action_batch):

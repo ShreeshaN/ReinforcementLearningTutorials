@@ -91,12 +91,13 @@ class Agent_DQN(Agent):
         self.target_network.eval()
         self.mode = "Random"
         self.state_counter_while_testing = 0
-
         self.icm_model = ICM(self.input_shape, self.num_actions).to(self.device)
+
         self.inverse_loss_fn = nn.CrossEntropyLoss()
         self.forward_loss_fn = nn.MSELoss()
         self.beta = args.beta
         self.lambda_val = args.lambda_val
+        self.eta = args.eta
 
         # create necessary paths
         self.create_dirs()
@@ -181,14 +182,19 @@ class Agent_DQN(Agent):
             # 1. discounted reward
             # 2. inverse model loss
             # 3. forward model loss
+            onehot_action_batch = tensor([generate_onehot(x, self.num_actions) for x in action_batch]).float()
             encoded_next_state_batch, predicted_next_state_batch, predicted_action_batch = self.icm_model(state_batch,
                                                                                                           next_state_batch,
-                                                                                                          action_batch)
+                                                                                                          onehot_action_batch)
             loss_inverse = self.inverse_loss_fn(predicted_action_batch, action_batch)
             loss_forward = self.forward_loss_fn(predicted_next_state_batch, encoded_next_state_batch)
 
-            loss = -(self.lambda_val * reward_batch) + self.beta * loss_forward + (1 - self.beta) * loss_inverse
-            self.intrinsic_episode_reward.append(np.mean(loss_inverse.cpu().numpy()))
+            intrinsic_reward = self.eta * loss_forward
+            discounted_reward = self.lambda_val * (intrinsic_reward + torch.mean(reward_batch))
+
+            # loss = torch.mean(discounted_reward + self.beta * loss_forward + (1 - self.beta) * loss_inverse)
+            loss = torch.mean(discounted_reward + loss_forward + loss_inverse)
+            self.intrinsic_episode_reward.append(intrinsic_reward.detach().cpu().numpy())
         else:
             # Normal Deep-Q-Learning agent
             q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
@@ -203,8 +209,8 @@ class Agent_DQN(Agent):
 
         self.optimiser.zero_grad()
         loss.backward()
-        for param in self.q_network.parameters():
-            param.grad.data.clamp_(-1, 1)
+        # for param in self.q_network.parameters():
+        #     param.grad.data.clamp_(-1, 1)
         self.optimiser.step()
         return loss.cpu().detach().numpy()
 
@@ -221,6 +227,7 @@ class Agent_DQN(Agent):
         """
         Implement your training algorithm here
         """
+        print()
         for episode in range(self.episodes):
             state = self.env.reset()
             state = torch.reshape(tensor(state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1, 2).to(
@@ -271,13 +278,13 @@ class Agent_DQN(Agent):
                           sum(episode_reward),
                           ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
                           np.mean(episode_loss), ' | Intrinsic Reward: ', sum(self.intrinsic_episode_reward),
-                          'Avg Intrinsic Reward: ', np.mean(self.last_n_intrinsic_rewards),
+                          ' | Avg Intrinsic Reward: ', np.mean(self.last_n_intrinsic_rewards),
                           ' | Mode: ', self.mode)
                     print('Episode:', episode, ' | Steps:', self.step, ' | Eps: ', self.epsilon, ' | Reward: ',
                           sum(episode_reward),
                           ' | Avg Reward: ', np.mean(self.last_n_rewards), ' | Loss: ',
                           np.mean(episode_loss), ' | Intrinsic Reward: ', sum(self.intrinsic_episode_reward),
-                          'Avg Intrinsic Reward: ', np.mean(self.last_n_intrinsic_rewards),
+                          ' | Avg Intrinsic Reward: ', np.mean(self.last_n_intrinsic_rewards),
                           ' | Mode: ', self.mode, file=self.log_file)
                     self.log_summary(episode, episode_loss, episode_reward)
                     self.last_n_rewards.append(sum(episode_reward))

@@ -30,18 +30,19 @@ def parse():
     parser.add_argument('--replay_size', type=int, default=10000, help='')
     parser.add_argument('--start_to_learn', type=int, default=5000, help='')
     parser.add_argument('--total_num_steps', type=int, default=5e7, help='')
-    parser.add_argument('--learning_rate', type=float, default=1e-3, help='')
+    parser.add_argument('--learning_rate', type=float, default=1e-4, help='')
     parser.add_argument('--gamma', type=float, default=0.99, help='')
     parser.add_argument('--initial_epsilon', type=float, default=1.0, help='')
     parser.add_argument('--final_epsilon', type=float, default=0.005, help='')
-    parser.add_argument('--steps_to_explore', type=int, default=5000000, help='')
+    parser.add_argument('--steps_to_explore', type=int, default=1000000, help='')
     parser.add_argument('--network_update_interval', type=int, default=5000, help='')
     parser.add_argument('--episodes', type=int, default=50000000, help='')
     parser.add_argument('--network_train_interval', type=int, default=10, help='')
     parser.add_argument('--ddqn', type=bool, default=False, help='')
     parser.add_argument('--use_icm', type=bool, default=True, help='')
     parser.add_argument('--beta', type=float, default=0.2, help='')
-    parser.add_argument('--lambda_val', type=float, default=0.1, help='')
+    parser.add_argument('--lambda_val', type=float, default=0.95, help='')
+    parser.add_argument('--eta', type=float, default=0.99, help='')
     torch.set_default_tensor_type('torch.cuda.FloatTensor' if torch.cuda.is_available() else 'torch.FloatTensor')
 
     args = parser.parse_args()
@@ -54,6 +55,7 @@ def run(args):
         env = Environment(env_name, args, atari_wrapper=True)
         agent = Agent_DQN(env, args)
         agent.train()
+
 
     if args.test_dqn:
         env = Environment('BreakoutNoFrameskip-v4', args, atari_wrapper=True, test=True)
