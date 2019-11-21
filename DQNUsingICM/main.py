@@ -1,6 +1,6 @@
 import argparse
-from DQN.agent_dqn import Agent_DQN
-from DQN.environment import Environment
+from DQNUsingICM.agent_dqn import Agent_DQN
+from DQNUsingICM.environment import Environment
 import numpy as np
 from torch import tensor
 import torch
