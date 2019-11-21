@@ -34,7 +34,7 @@ def parse():
     parser.add_argument('--gamma', type=float, default=0.99, help='')
     parser.add_argument('--initial_epsilon', type=float, default=1.0, help='')
     parser.add_argument('--final_epsilon', type=float, default=0.005, help='')
-    parser.add_argument('--steps_to_explore', type=int, default=1000000, help='')
+    parser.add_argument('--steps_to_explore', type=int, default=5000000, help='')
     parser.add_argument('--network_update_interval', type=int, default=5000, help='')
     parser.add_argument('--episodes', type=int, default=50000000, help='')
     parser.add_argument('--network_train_interval', type=int, default=10, help='')

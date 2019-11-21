@@ -78,6 +78,8 @@ class Agent_DQN(Agent):
         self.start_to_learn = args.start_to_learn
         self.ddqn = args.ddqn
         self.use_icm = args.use_icm
+        self.intrinsic_episode_reward = []
+        self.last_n_intrinsic_rewards = deque([], self.metrics_capture_window)
 
         self.batch_size = args.batch_size
         self.q_network = DQN().to(self.device)
@@ -186,6 +188,7 @@ class Agent_DQN(Agent):
             loss_forward = self.forward_loss_fn(predicted_next_state_batch, encoded_next_state_batch)
 
             loss = -(self.lambda_val * reward_batch) + self.beta * loss_forward + (1 - self.beta) * loss_inverse
+            self.intrinsic_episode_reward.append(np.mean(loss_inverse.cpu().numpy()))
         else:
             # Normal Deep-Q-Learning agent
             q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
@@ -209,6 +212,9 @@ class Agent_DQN(Agent):
         self.writer.add_scalar('Train/Episode Reward', sum(episode_reward), global_step)
         self.writer.add_scalar('Train/Average Loss', np.mean(episode_loss), global_step)
         self.writer.add_scalar('Train/Average reward(100)', np.mean(self.last_n_rewards), global_step)
+        self.writer.add_scalar('Train/Intrinsic Reward', sum(self.intrinsic_episode_reward), global_step)
+        self.writer.add_scalar('Train/Average Intrinsic Reward(100)', np.mean(self.last_n_intrinsic_rewards),
+                               global_step)
         self.writer.flush()
 
     def train(self):
@@ -271,5 +277,7 @@ class Agent_DQN(Agent):
                           np.mean(episode_loss), ' | Mode: ', self.mode, file=self.log_file)
                     self.log_summary(episode, episode_loss, episode_reward)
                     self.last_n_rewards.append(sum(episode_reward))
+                    self.last_n_intrinsic_rewards.append(sum(self.intrinsic_episode_reward))
                     episode_reward.clear()
                     episode_loss.clear()
+                    self.intrinsic_episode_reward.clear()
