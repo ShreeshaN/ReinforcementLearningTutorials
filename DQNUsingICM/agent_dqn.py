@@ -190,11 +190,20 @@ class Agent_DQN(Agent):
             loss_forward = self.forward_loss_fn(predicted_next_state_batch, encoded_next_state_batch)
 
             intrinsic_reward = self.eta * loss_forward
-            discounted_reward = self.lambda_val * (intrinsic_reward + torch.mean(reward_batch))
+            discounted_reward = self.lambda_val * (intrinsic_reward + reward_batch)
 
             # loss = torch.mean(discounted_reward + self.beta * loss_forward + (1 - self.beta) * loss_inverse)
-            loss = torch.mean(discounted_reward + loss_forward + loss_inverse)
+            # loss = torch.mean(discounted_reward + loss_forward + loss_inverse)
             self.intrinsic_episode_reward.append(intrinsic_reward.detach().cpu().numpy())
+            q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
+            target_values = self.target_network(next_state_batch)
+            if self.ddqn:
+                best_actions = torch.argmax(self.q_network(next_state_batch), dim=-1)
+                target_values = target_values.gather(1, tensor(best_actions).unsqueeze(1)).squeeze(1)
+            else:
+                target_values = target_values.max(1)[0].squeeze(0)
+            target_values = target_values * self.gamma * (1 - terminal_batch)
+            loss = self.loss_function(q_values, discounted_reward + target_values) + loss_forward + loss_inverse
         else:
             # Normal Deep-Q-Learning agent
             q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
