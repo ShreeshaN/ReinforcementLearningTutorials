@@ -42,7 +42,7 @@ def parse():
     parser.add_argument('--use_icm', type=bool, default=True, help='')
     parser.add_argument('--beta', type=float, default=0.2, help='')
     parser.add_argument('--lambda_val', type=float, default=0.95, help='')
-    parser.add_argument('--eta', type=float, default=0.99, help='')
+    parser.add_argument('--eta', type=float, default=0.01, help='')
     torch.set_default_tensor_type('torch.cuda.FloatTensor' if torch.cuda.is_available() else 'torch.FloatTensor')
 
     args = parser.parse_args()

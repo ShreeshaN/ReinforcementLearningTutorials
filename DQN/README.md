@@ -14,7 +14,7 @@ This repo is an implementation of deep-q-learning. It demonstrates the agent lea
 
 - To test the agent:
 
-    `python main.py --test_dqn --model_test_path "trained_model_path""`
+    `python main.py --test_dqn --model_test_path "trained_model_path"`
     
 
 #### Results:
