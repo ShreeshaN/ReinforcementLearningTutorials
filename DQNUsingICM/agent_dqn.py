@@ -200,7 +200,8 @@ class Agent_DQN(Agent):
                 target_values = target_values.max(1)[0].squeeze(0)
             target_values = target_values * self.gamma * (1 - terminal_batch)
             q_loss = self.loss_function(q_values, discounted_reward + target_values)
-            loss = q_loss + loss_forward + loss_inverse
+            # loss = q_loss + loss_forward + loss_inverse
+            loss = q_loss + (self.beta * loss_forward) + ((1 - self.beta) * loss_inverse)
 
         self.optimiser.zero_grad()
         loss.backward()
