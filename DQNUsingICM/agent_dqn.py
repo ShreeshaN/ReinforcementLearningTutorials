@@ -265,7 +265,7 @@ class Agent_DQN(Agent):
 
                 action, q = self.make_action(state, 0, test=False)
                 next_state, reward, done, _ = self.env.step(action)
-                reward = 0 if reward < 4 else reward  # Sparse reward setting
+                reward = 0.0 if reward < 4 else reward  # Sparse reward setting
                 next_state = torch.reshape(tensor(next_state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1,
                                                                                                             2).to(
                         self.device)
