@@ -41,7 +41,7 @@ class DQN(nn.Module):
         x = F.relu(self.conv3(x))
         x = x.view(-1, 7 * 7 * 64)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.softmax(self.fc2(x), dim=1)
         return x
 
 
@@ -82,14 +82,14 @@ class ICM(nn.Module):
         )
 
     def forward(self, state_batch, next_state_batch, onehot_action_batch):
-        encoded_current_state_batch = self.feature_extractor(state_batch) # phi S
-        encoded_next_state_batch = self.feature_extractor(next_state_batch) # phi S+1
+        encoded_current_state_batch = self.feature_extractor(state_batch)  # phi S
+        encoded_next_state_batch = self.feature_extractor(next_state_batch)  # phi S+1
         self.encoded_next_state_batch_shape = reduce(lambda x, y: x * y, encoded_next_state_batch.shape[1:])
 
         forward_model_inp = torch.cat((encoded_current_state_batch, onehot_action_batch), dim=1)
-        predicted_next_state = self.forward_model(forward_model_inp) # predicted Phi s+1
+        predicted_next_state = self.forward_model(forward_model_inp)  # predicted Phi s+1
 
         inverse_model_inp = torch.cat((encoded_current_state_batch, encoded_next_state_batch), dim=1)
-        predicted_action = self.inverse_model(inverse_model_inp) # pred action
+        predicted_action = self.inverse_model(inverse_model_inp)  # pred action
 
         return encoded_next_state_batch, predicted_next_state, predicted_action
