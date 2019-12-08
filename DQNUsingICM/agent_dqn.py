@@ -42,8 +42,6 @@ class Agent_DQN(Agent):
 
         super(Agent_DQN, self).__init__(env)
 
-        ###########################
-        # YOUR IMPLEMENTATION HERE #
         self.run_name = args.run_name
         self.model_save_path = args.model_save_path
         self.model_save_interval = args.model_save_interval
@@ -202,18 +200,7 @@ class Agent_DQN(Agent):
                 target_values = target_values.max(1)[0].squeeze(0)
             target_values = target_values * self.gamma * (1 - terminal_batch)
             q_loss = self.loss_function(q_values, discounted_reward + target_values)
-            loss = q_loss + (self.beta * loss_forward) + ((1 - self.beta) * loss_inverse)
-        # else:
-        #     # Normal Deep-Q-Learning agent
-        #     q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
-        #     target_values = self.target_network(next_state_batch)
-        #     if self.ddqn:
-        #         best_actions = torch.argmax(self.q_network(next_state_batch), dim=-1)
-        #         target_values = target_values.gather(1, tensor(best_actions).unsqueeze(1)).squeeze(1)
-        #     else:
-        #         target_values = target_values.max(1)[0].squeeze(0)
-        #     target_values = target_values * self.gamma * (1 - terminal_batch)
-        #     loss = self.loss_function(q_values, reward_batch + target_values)
+            loss = q_loss + loss_forward + loss_inverse
 
         self.optimiser.zero_grad()
         loss.backward()
