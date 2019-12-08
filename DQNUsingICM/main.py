@@ -43,6 +43,7 @@ def parse():
     parser.add_argument('--beta', type=float, default=0.2, help='')
     parser.add_argument('--lambda_val', type=float, default=0.95, help='')
     parser.add_argument('--eta', type=float, default=0.01, help='')
+    parser.add_argument('--sparse', type=bool, default=True, help='')
     torch.set_default_tensor_type('torch.cuda.FloatTensor' if torch.cuda.is_available() else 'torch.FloatTensor')
 
     args = parser.parse_args()
@@ -52,7 +53,8 @@ def parse():
 def run(args):
     if args.train_dqn:
         env_name = args.env_name or 'BreakoutNoFrameskip-v4'
-        env = Environment(env_name, args, atari_wrapper=True)
+        clip_rewards = False if args.sparse else True
+        env = Environment(env_name, args, atari_wrapper=True, clip_rewards=clip_rewards)
         agent = Agent_DQN(env, args)
         agent.train()
 

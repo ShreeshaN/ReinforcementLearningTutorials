@@ -8,17 +8,18 @@ import gym
 import numpy as np
 from DQN.atari_wrapper import make_wrap_atari
 
+
 class Environment(object):
-    def __init__(self, env_name, args, atari_wrapper=False, test=False):
+    def __init__(self, env_name, args, atari_wrapper=False, test=False, clip_rewards=True):
         if atari_wrapper:
-            clip_rewards = not test
+            # clip_rewards = not test
             self.env = make_wrap_atari(env_name, clip_rewards)
         else:
             self.env = gym.make(env_name)
 
         self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space
-        
+
     def seed(self, seed):
         '''
         Control the randomness of the environment
@@ -39,8 +40,7 @@ class Environment(object):
 
         return np.array(observation)
 
-
-    def step(self,action):
+    def step(self, action):
         '''
         When running dqn:
             observation: np.array
@@ -66,14 +66,11 @@ class Environment(object):
 
         return np.array(observation), reward, done, info
 
-
     def get_action_space(self):
         return self.action_space
 
-
     def get_observation_space(self):
         return self.observation_space
-
 
     def get_random_action(self):
         return self.action_space.sample()

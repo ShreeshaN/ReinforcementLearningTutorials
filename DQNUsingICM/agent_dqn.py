@@ -202,7 +202,7 @@ class Agent_DQN(Agent):
                 target_values = target_values.max(1)[0].squeeze(0)
             target_values = target_values * self.gamma * (1 - terminal_batch)
             q_loss = self.loss_function(q_values, discounted_reward + target_values)
-            loss = q_loss + (self.beta * loss_forward) + ((1 - self.beta) * loss_inverse)
+            loss = q_loss + loss_forward + loss_inverse
         # else:
         #     # Normal Deep-Q-Learning agent
         #     q_values = self.q_network(state_batch).gather(1, action_batch.unsqueeze(1)).squeeze(1)
@@ -265,7 +265,7 @@ class Agent_DQN(Agent):
 
                 action, q = self.make_action(state, 0, test=False)
                 next_state, reward, done, _ = self.env.step(action)
-
+                reward = 0 if reward < 4 else reward  # Sparse reward setting
                 next_state = torch.reshape(tensor(next_state, dtype=torch.float32), [1, 84, 84, 4]).permute(0, 3, 1,
                                                                                                             2).to(
                         self.device)
